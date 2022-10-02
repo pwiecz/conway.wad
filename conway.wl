@@ -1,20 +1,19 @@
 #"standard.h"
 #"spawns.h"
+#"monsters.h"
 
 rowCount {10}
 colCount {10}
 
 main {
-  !init
-  movestep(-100, -102)
-  straight(32) linetype(0,0) right(1) 
+  undefx	
+  straight(32) linetype(0,0) right(1)
   linetype(253, $scroll_north) right(32)
   right(1)
-  leftsector(0,0,0)
+  rightsector(0,0,0)
   rotright
-  ^init
+  movestep(0,1)
   
---  mergesectors
   initializeLineTags  
 
   sectortype(0, $scroll_north)
@@ -42,31 +41,23 @@ main {
   thing
 }
 
-checkLadderStepZeroNeighbs(x, y, neighbIx) {
-  step(1, 0)
-  linetype(244, checkeeLineTag(x,y,neighbIx,0)) right(20)
-  linetype(0, 0) right(1)
-  right(20)
-  rightsector(0, 128, 161)
-  rotright
-  movestep(1, 0)
-}
-checkLadderStepNonZeroNeighbs(x, y, neighbIx, neighbCnt) {
-  step(1, 0)
-  linetype(0, checkeeOkLineTag(x,y,sub(neighbIx,1),sub(neighbCnt,1))) right(20)
-  linetype(0, 0) right(1)
-  right(20)
-  rightsector(0, 128, 161)
-  rotright
+checkLadderStep(x, y, neighbIx, neighbCnt) {
+  if(lessthaneq(1,neighbCnt),
+    step(1, 0)
+    linetype(0, checkeeOkLineTag(x,y,sub(neighbIx,1),sub(neighbCnt,1))) right(20)
+    linetype(0, 0) right(1)
+    right(20)
+    rightsector(0, 128, 161)
+    rotright
+    movestep(1, 0)
+  )
 
-  movestep(1, 0)
   step(1, 0)
   linetype(244, checkeeLineTag(x,y,neighbIx,neighbCnt)) right(20)
   linetype(0, 0) right(1)
   right(20)
   rightsector(0, 128, 161)
   rotright
-
   movestep(1, 0)
 }
 
@@ -80,7 +71,7 @@ checkLadderForCell(x, y) {
   thing
   movestep(0,-10)
   fori(0, 6, 
-    checkLadderStepZeroNeighbs(x, y, i)
+    checkLadderStep(x, y, i, 0)
   )
   step(1, 0)
   linetype(244,killCellTag(x,y)) right(20)
@@ -101,10 +92,10 @@ checkLadderForCell(x, y) {
   movestep(1, 0)
 
   fori(1,7,
-    checkLadderStepNonZeroNeighbs(x, y, i, 1)
+    checkLadderStep(x, y, i, 1)
   )
   step(1, 0)
-  linetype(244,killCellTag(x,y)) right(20)
+  linetype(97,killCellTag(x,y)) right(20)
   linetype(0,0) right(1)
   right(20)
   rightsector(0, 128, 161)
@@ -112,7 +103,7 @@ checkLadderForCell(x, y) {
   movestep(1, 0)
 
   fori(2,7,
-    checkLadderStepNonZeroNeighbs(x, y, i, 2))
+    checkLadderStep(x, y, i, 2))
   step(1, 0)
   linetype(97,keepCellTag(x,y)) right(20)
   linetype(0,0) right(1)
@@ -122,7 +113,7 @@ checkLadderForCell(x, y) {
   movestep(1, 0)
 
   fori(3,7,
-    checkLadderStepNonZeroNeighbs(x, y, i, 3))
+    checkLadderStep(x, y, i, 3))
   step(1, 0)
   linetype(97,reviveCellTag(x,y)) right(20)
   linetype(0,0) right(1)
@@ -150,19 +141,33 @@ checkerForCell(x, y) {
 	  movestep(0,2)
           linetype(0,checkerLineTag(x,y,get("neighbIx"),get("neighbCnt"))) left(2)
           linetype(0,0) right(1)
-          linetype(244,checkerOkLineTag(x,y,get("neighbIx"),get("neighbCnt"))) right(2)
+	  ifelse(lessthaneq(get("neighbCnt"),2),
+            linetype(244,checkerOkLineTag(x,y,get("neighbIx"),get("neighbCnt"))),
+            linetype(97,get(cat2("killCell",invNeighbourString(x,y,get("neighbIx")))))
+          )
+          right(2)
           linetype(0,0) right(1)
           rightsector(0,128,160)
 	  turnaround
         )
         movestep(1,-8)
         ifelse(lessthan(get("row"),2),
-          stdbox(21,8),
+          stdbox(21,8)
+	  movestep(21,0),
           stdbox(16,8) -- just enough to match the box on the left
+	  movestep(16,0)
 	)
-        movestep(21,0)
         inc("neighbIx",1)
       )
+    )
+    if(eq(get("col"),1),
+      movestep(-3,1)
+      sectortype(0,monsterBlockerTag(x,y))
+      ibox(1,56,160,1,6)
+      sectortype(0,$scroll_north)
+      movestep(-31,3)
+      cacodemon
+      thingangle(angle_west)
     )
     ^neighbourColumn
     movestep(0,8)
@@ -190,6 +195,9 @@ neighbourString(x, y, neighbIx) {
                 cat2(addx1(x),y),
 		cat2(addx1(x),addy1(y)))))))))
 }
+invNeighbourString(x, y, neighbIx) {
+  neighbourString(x,y,sub(7,neighbIx))
+}
 subx1(x) {
   ifelse(eq(x,0),sub(colCount,1),sub(x,1))
 }
@@ -209,10 +217,12 @@ initializeLineTags {
       set(cat3("killCell",x,y),newtag)
       set(cat3("keepCell",x,y),newtag)
       set(cat3("reviveCell",x,y),newtag)
+      set(cat3("monsterBlocker",x,y),newtag)
       forvar("neighbIx",0,7,
         forvar("neighbCnt",0,3,
           set(cat5("check",get("x"),get("y"),get("neighbIx"),get("neighbCnt")),newtag)
-          set(cat5("checkOk",get("x"),get("y"),get("neighbIx"),get("neighbCnt")),newtag)
+          if(lessthan(get("neighbCnt"),3),
+            set(cat5("checkOk",get("x"),get("y"),get("neighbIx"),get("neighbCnt")),newtag))
         )
       )
     )
@@ -239,6 +249,9 @@ keepCellTag(x,y) {
 }
 reviveCellTag(x,y) {
   get(cat3("reviveCell",x,y))
+}
+monsterBlockerTag(x,y) {
+  get(cat3("monsterBlocker",x,y))
 }
 
 stdbox(w,h) {
