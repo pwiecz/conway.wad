@@ -1,14 +1,18 @@
-#"standard.h"
-#"spawns.h"
+#"lines.h"
 #"monsters.h"
+#"spawns.h"
+#"standard.h"
 
-rowCount {10}
-colCount {10}
+rowCount {2}
+colCount {2}
+scrollSpeed {128}
 
 main {
+  turnaround
   undefx	
-  straight(32) linetype(0,0) right(1)
-  linetype(253, $scroll_north) right(32)
+  linetype(253, $scroll_north) straight(scrollSpeed)
+  linetype(0,0) right(1)
+  right(scrollSpeed)
   right(1)
   rightsector(0,0,0)
   rotright
@@ -24,21 +28,31 @@ main {
       !ladder
       checkLadderForCell(get("x"),get("y"))
       ^ladder
-      movestep(0, 20)
+      movestep(0, 21)
       checkerForCell(get("x"),get("y"))
       ^ladder
       movestep(71, 0)
     )
     ^column
-    movestep(0, 102)
+    movestep(0, 103)
   )
 
   sectortype(0,0)
   stdbox(1000, 1000)
-  movestep(32, 32)
+  movestep(32, 64)
 
   player1start
   thing
+
+  movestep(100,-1)
+  linetype(floor_wr_down_LnF, $blocker)
+  right(32)
+  left(4)
+  left(32)
+  left(4)
+  innerleftsector(10,128,161)
+  turnaround
+
 }
 
 checkLadderStep(x, y, neighbIx, neighbCnt) {
@@ -62,8 +76,16 @@ checkLadderStep(x, y, neighbIx, neighbCnt) {
 }
 
 checkLadderForCell(x, y) {
+  !startLadder
+  box(0,128,161,71,1)
+  movestep(0,1)
   -- place for the back half of the barrel
-  stdbox(10, 20)
+  step(10,0)
+  linetype(0,starterTag(x,y)) flipright(20)
+  linetype(0,0) right(10)
+  right(20)
+  rightsector(0,128,161)
+  rotright
   movestep(10,0)
   movestep(0,10)
   -- barrel
@@ -74,7 +96,9 @@ checkLadderForCell(x, y) {
     checkLadderStep(x, y, i, 0)
   )
   step(1, 0)
-  linetype(244,killCellTag(x,y)) right(20)
+--  linetype(97,killCellTag(x,y)) right(20)
+--  linetype(269,starterTag(x,y)) right(20)
+  linetype(244,starterTag(x,y)) right(20)
   linetype(0,0) right(1)
   right(20)
   rightsector(0, 128, 161)
@@ -86,7 +110,7 @@ checkLadderForCell(x, y) {
   movestep(2,0)
   
   sectortype(0,$blocker)
-  box(1, 42, 160, 1, 20)
+  box(1, 42, 161, 1, 20)
   sectortype(0, $scroll_north)
 
   movestep(1, 0)
@@ -123,6 +147,14 @@ checkLadderForCell(x, y) {
   movestep(1, 0)
   --headroom for front of the barrel
   stdbox(11, 20)
+  ^startLadder
+--  movestep(0,20)
+--  step(71,0)
+--  right(1)
+--  right(71)
+--  right(1)
+--  rightsector(1, 42, 161)
+--  rotright
 }
 
 checkerForCell(x, y) {
@@ -147,7 +179,7 @@ checkerForCell(x, y) {
           )
           right(2)
           linetype(0,0) right(1)
-          rightsector(0,128,160)
+          rightsector(0,128,161)
 	  turnaround
         )
         movestep(1,-8)
@@ -163,11 +195,11 @@ checkerForCell(x, y) {
     if(eq(get("col"),1),
       movestep(-3,1)
       sectortype(0,monsterBlockerTag(x,y))
-      ibox(1,56,160,1,6)
+      ibox(1,56,161,1,6)
       sectortype(0,$scroll_north)
       movestep(-31,3)
       cacodemon
-      thingangle(angle_west)
+      thingangle(rotatedAngle(angle_west))
     )
     ^neighbourColumn
     movestep(0,8)
@@ -214,6 +246,7 @@ addy1(y) {
 initializeLineTags {
   forvar("x",0,sub(colCount,1),
     forvar("y",0,sub(rowCount,1),
+      set(cat3("starter",x,y),newtag)
       set(cat3("killCell",x,y),newtag)
       set(cat3("keepCell",x,y),newtag)
       set(cat3("reviveCell",x,y),newtag)
@@ -241,6 +274,9 @@ checkerLineTag(x,y,neighbIx,neighbCnt) {
 checkerOkLineTag(x,y,neighbIx,neighbCnt) {
   get(cat5("checkOk",x,y,neighbIx,neighbCnt))
 }
+starterTag(x,y) {
+  get(cat3("starter",x,y))
+}
 killCellTag(x,y) {
   get(cat3("killCell",x,y))
 }
@@ -255,24 +291,26 @@ monsterBlockerTag(x,y) {
 }
 
 stdbox(w,h) {
-  box(0,128,160,w,h)
+  box(0,128,161,w,h)
+}
+
+flipright(len) {
+  rotright up step(len,0) down turnaround step(len,0) up turnaround step(len,0) down
 }
 
 cat2(a, b) {
   cat(a, cat(",", b))
 }
-
 cat3(a, b, c) {
   cat2(a, cat2(b, c))
 }
-
 cat4(a, b, c, d) {
   cat2(a, cat3(b, c, d))
 }
-
 cat5(a, b, c, d, e) {
   cat2(a, cat4(b, c, d, e))
 }
+
 forj(from, to, body) {
     set("j", from)
     for(from, to,
@@ -303,4 +341,16 @@ forvar(var,from,to,body) {
     body
     inc(var,1)
   )
+}
+mod(n,d) {
+ sub(n,mul(div(n,d),d))
+}
+rotatedAngle(angle) {
+  ifelse(eq(getorient,0),
+    angle,
+    ifelse(eq(getorient,1),
+      mod(add(angle,90),360),
+      ifelse(eq(getorient,2),
+        mod(add(angle,180),360),
+	mod(add(angle,270),360))))
 }
