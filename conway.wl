@@ -3,9 +3,9 @@
 #"spawns.h"
 #"standard.h"
 
-rowCount {2}
-colCount {2}
-scrollSpeed {128}
+rowCount {4}
+colCount {4}
+scrollSpeed {10}
 
 main {
   turnaround
@@ -22,27 +22,48 @@ main {
 
   sectortype(0, $scroll_north)
 
+  !barrels
   forvar("x",0,sub(rowCount,1),
     !column
     forvar("y",0,sub(colCount,1),
-      !ladder
-      checkLadderForCell(get("x"),get("y"))
-      ^ladder
-      movestep(0, 21)
-      checkerForCell(get("x"),get("y"))
-      ^ladder
-      movestep(71, 0)
+      barrelStart(get("x"),get("y"))
     )
     ^column
-    movestep(0, 103)
+    movestep(0,20)
   )
-
+  ^barrels
+  movestep(0,mul(20,colCount))
+  !ladders
+  forvar("x",0,sub(colCount,1),
+    !column
+    forvar("y",0,sub(rowCount,1),
+      checkLadderForCell(get("x"),get("y"))
+    )
+    ^column
+    movestep(0, 21)
+  )
+  ^ladders
+  movestep(0,mul(21,colCount))
+  !checkers
+  forvar("x",0,sub(colCount,1),
+    !column
+    forvar("y",0,sub(rowCount,1),
+      !checker
+      checkerForCell(get("x"),get("y"))
+      ^checker
+      movestep(66,0)
+    )      
+    ^column
+    movestep(0,82)
+  )
+  ^checkers
+  movestep(0,mul(82,colCount))
   sectortype(0,0)
   stdbox(1000, 1000)
   movestep(32, 64)
 
   player1start
-  thing
+  thingangle(rotatedAngle(angle_west))
 
   movestep(100,-1)
   linetype(floor_wr_down_LnF, $blocker)
@@ -76,45 +97,33 @@ checkLadderStep(x, y, neighbIx, neighbCnt) {
 }
 
 checkLadderForCell(x, y) {
-  !startLadder
-  box(0,128,161,71,1)
+  box(0,128,161,68,1)
   movestep(0,1)
   -- place for the back half of the barrel
-  step(10,0)
-  linetype(0,starterTag(x,y)) flipright(20)
-  linetype(0,0) right(10)
+  sectortype(0,starterTag(x,y))
+  step(11,0)
+  linetype(244,checkeeLineTag(x,y,0,0)) right(20)
+  linetype(0,0) right(11)
   right(20)
   rightsector(0,128,161)
+  sectortype(0,$scroll_north)
   rotright
-  movestep(10,0)
-  movestep(0,10)
-  -- barrel
-  setthing(2035)
+  movestep(10,10)
+  teleportlanding
   thing
-  movestep(0,-10)
-  fori(0, 6, 
+  thingangle(rotatedAngle(angle_north))
+  movestep(1,-10)
+  fori(1, 6, 
     checkLadderStep(x, y, i, 0)
   )
   step(1, 0)
 --  linetype(97,killCellTag(x,y)) right(20)
---  linetype(269,starterTag(x,y)) right(20)
-  linetype(244,starterTag(x,y)) right(20)
+  linetype(269,starterTag(x,y)) right(20)
   linetype(0,0) right(1)
   right(20)
   rightsector(0, 128, 161)
   rotright
   movestep(1, 0)
-
-  -- headroom to make the barrel fit before the blocker
-  stdbox(2,20)
-  movestep(2,0)
-  
-  sectortype(0,$blocker)
-  box(1, 42, 161, 1, 20)
-  sectortype(0, $scroll_north)
-
-  movestep(1, 0)
-
   fori(1,7,
     checkLadderStep(x, y, i, 1)
   )
@@ -147,19 +156,12 @@ checkLadderForCell(x, y) {
   movestep(1, 0)
   --headroom for front of the barrel
   stdbox(11, 20)
-  ^startLadder
---  movestep(0,20)
---  step(71,0)
---  right(1)
---  right(71)
---  right(1)
---  rightsector(1, 42, 161)
---  rotright
+  movestep(11,-1)
 }
 
 checkerForCell(x, y) {
   -- room for left part of barrels to move over
-  stdbox(71,10)
+  stdbox(66,10)
   movestep(0,10)
   set("neighbIx",0)
   forvar("col",0,2,
@@ -186,8 +188,8 @@ checkerForCell(x, y) {
         ifelse(lessthan(get("row"),2),
           stdbox(21,8)
 	  movestep(21,0),
-          stdbox(16,8) -- just enough to match the box on the left
-	  movestep(16,0)
+          stdbox(11,8)
+	  movestep(11,0)
 	)
         inc("neighbIx",1)
       )
@@ -204,10 +206,26 @@ checkerForCell(x, y) {
     ^neighbourColumn
     movestep(0,8)
     ifelse(lessthan(get("col"),2),
-      stdbox(71,19) movestep(0,19),
-      stdbox(71,10) movestep(0,10)
+      stdbox(66,19) movestep(0,19),
+      stdbox(66,10) movestep(0,10)
     )
   )
+}
+
+barrelStart(x,y) {
+  sectortype(0,$scroll_north)
+  step(11,0)
+  linetype(269,starterTag(x,y)) right(20)
+  linetype(0,0) right(11)
+  right(20)
+  rightsector(0,128,161)
+  rotright
+  movestep(10,10)
+  setthing(2035)
+  thing
+  movestep(1,-10)
+  box(0,128,161,11,20)
+  movestep(11,0)
 }
 
 neighbourString(x, y, neighbIx) {
