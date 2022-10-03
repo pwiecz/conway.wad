@@ -6,6 +6,8 @@
 rowCount {4}
 colCount {4}
 scrollSpeed {10}
+barrel { setthing(2035) }
+burningbarrel { setthing(70) }
 
 main {
   turnaround
@@ -51,13 +53,24 @@ main {
       !checker
       checkerForCell(get("x"),get("y"))
       ^checker
-      movestep(66,0)
+      movestep(72,0)
     )      
     ^column
-    movestep(0,82)
+    movestep(0,70)
   )
   ^checkers
-  movestep(0,mul(82,colCount))
+  movestep(0,mul(70,colCount))
+  !aliveCells
+  forvar("x",0,sub(colCount,1),
+    !column
+    forvar("y",0,sub(rowCount,1),
+      aliveCellBlock(get("x"),get("y"))
+    )
+    ^column
+    movestep(0,32)
+  )
+  ^aliveCells
+  movestep(0,mul(32,colCount))
   sectortype(0,0)
   stdbox(1000, 1000)
   movestep(32, 64)
@@ -78,21 +91,10 @@ main {
 
 checkLadderStep(x, y, neighbIx, neighbCnt) {
   if(lessthaneq(1,neighbCnt),
-    step(1, 0)
-    linetype(0, checkeeOkLineTag(x,y,sub(neighbIx,1),sub(neighbCnt,1))) right(20)
-    linetype(0, 0) right(1)
-    right(20)
-    rightsector(0, 128, 161)
-    rotright
-    movestep(1, 0)
+    stdboxwithfrontline(1,20,0,checkeeOkLineTag(x,y,sub(neighbIx,1),sub(neighbCnt,1)))
+    movestep(1,0)
   )
-
-  step(1, 0)
-  linetype(244, checkeeLineTag(x,y,neighbIx,neighbCnt)) right(20)
-  linetype(0, 0) right(1)
-  right(20)
-  rightsector(0, 128, 161)
-  rotright
+  stdboxwithfrontline(1,20,244,checkeeLineTag(x,y,neighbIx,neighbCnt))
   movestep(1, 0)
 }
 
@@ -101,58 +103,36 @@ checkLadderForCell(x, y) {
   movestep(0,1)
   -- place for the back half of the barrel
   sectortype(0,starterTag(x,y))
-  step(11,0)
-  linetype(244,checkeeLineTag(x,y,0,0)) right(20)
-  linetype(0,0) right(11)
-  right(20)
-  rightsector(0,128,161)
+  stdboxwithfrontline(11,20,244,checkeeLineTag(x,y,0,0))
   sectortype(0,$scroll_north)
-  rotright
   movestep(10,10)
   teleportlanding
   thing
   thingangle(rotatedAngle(angle_north))
   movestep(1,-10)
-  fori(1, 6, 
+  fori(1, 6,
     checkLadderStep(x, y, i, 0)
   )
-  step(1, 0)
---  linetype(97,killCellTag(x,y)) right(20)
-  linetype(269,starterTag(x,y)) right(20)
-  linetype(0,0) right(1)
-  right(20)
-  rightsector(0, 128, 161)
-  rotright
+  stdboxwithfrontline(1,20,
+--  97,killCellTag(x,y))
+    269,starterTag(x,y))
   movestep(1, 0)
   fori(1,7,
     checkLadderStep(x, y, i, 1)
   )
-  step(1, 0)
-  linetype(97,killCellTag(x,y)) right(20)
-  linetype(0,0) right(1)
-  right(20)
-  rightsector(0, 128, 161)
-  rotright
+  stdboxwithfrontline(1,20,97,killCellTag(x,y))
   movestep(1, 0)
 
   fori(2,7,
-    checkLadderStep(x, y, i, 2))
-  step(1, 0)
-  linetype(97,keepCellTag(x,y)) right(20)
-  linetype(0,0) right(1)
-  right(20)
-  rightsector(0, 128, 161)
-  rotright
+    checkLadderStep(x, y, i, 2)
+  )
+  stdboxwithfrontline(1,20,97,keepCellTag(x,y))
   movestep(1, 0)
 
   fori(3,7,
-    checkLadderStep(x, y, i, 3))
-  step(1, 0)
-  linetype(97,reviveCellTag(x,y)) right(20)
-  linetype(0,0) right(1)
-  right(20)
-  rightsector(0, 128, 161)
-  rotright
+    checkLadderStep(x, y, i, 3)
+  )
+  stdboxwithfrontline(1,20,97,reviveCellTag(x,y))
   movestep(1, 0)
   --headroom for front of the barrel
   stdbox(11, 20)
@@ -161,71 +141,88 @@ checkLadderForCell(x, y) {
 
 checkerForCell(x, y) {
   -- room for left part of barrels to move over
-  stdbox(66,10)
+  stdbox(72,10)
   movestep(0,10)
   set("neighbIx",0)
   forvar("col",0,2,
     !neighbourColumn
-    stdbox(10,8)
+    stdbox(10,4)
     movestep(10,0)
     forvar("row",0,2,
       ifelse(and(eq(get("col"),1),eq(get("row"),1)),
-        stdbox(22,8) movestep(22,0), -- TODO: place for the blocker
-        forvar("neighbCnt",0,3,
-	  movestep(0,2)
-          linetype(0,checkerLineTag(x,y,get("neighbIx"),get("neighbCnt"))) left(2)
-          linetype(0,0) right(1)
-	  ifelse(lessthaneq(get("neighbCnt"),2),
-            linetype(244,checkerOkLineTag(x,y,get("neighbIx"),get("neighbCnt"))),
-            linetype(97,get(cat2("killCell",invNeighbourString(x,y,get("neighbIx")))))
-          )
-          right(2)
-          linetype(0,0) right(1)
-          rightsector(0,128,161)
-	  turnaround
-        )
-        movestep(1,-8)
+        stdbox(24,4) movestep(24,0), -- TODO: place for the blocker
+	stdboxwithfrontandbackline(1,2,
+          244,checkerOkLineTag(x,y,get("neighbIx"),0),
+          0,checkerLineTag(x,y,get("neighbIx"),0))
+	movestep(0,2)
+	stdboxwithfrontandbackline(1,2,
+          244,checkerOkLineTag(x,y,get("neighbIx"),1),
+          0,checkerLineTag(x,y,get("neighbIx"),1))
+	movestep(1,-2)
+	stdboxwithfrontline(1,2,
+	  0,checkerLineTag(x,y,get("neighbIx"),2))
+	movestep(1,0)
+	stdboxwithfrontline(1,2,
+	  244,checkerOkLineTag(x,y,get("neighbIx"),2))
+	movestep(-1,2)
+	stdboxwithfrontline(1,2,
+	  0,checkerLineTag(x,y,get("neighbIx"),3))
+	movestep(1,0)
+    	stdboxwithfrontline(1,2,
+          97,get(cat2("killCell",invNeighbourString(x,y,get("neighbIx")))))
+        movestep(1,-2)
         ifelse(lessthan(get("row"),2),
-          stdbox(21,8)
+          stdbox(21,4)
 	  movestep(21,0),
-          stdbox(11,8)
+          stdbox(11,4)
 	  movestep(11,0)
 	)
         inc("neighbIx",1)
       )
     )
     if(eq(get("col"),1),
-      movestep(-3,1)
-      sectortype(0,monsterBlockerTag(x,y))
-      ibox(1,56,161,1,6)
+      movestep(-21,1)
+      sectortype(0,cellDeadBlockerTag(x,y))
+      ibox(1,16,161,1,2)
       sectortype(0,$scroll_north)
-      movestep(-31,3)
-      cacodemon
-      thingangle(rotatedAngle(angle_west))
+      movestep(-16,1)
+      burningbarrel
+      thing
     )
     ^neighbourColumn
-    movestep(0,8)
+    movestep(0,4)
     ifelse(lessthan(get("col"),2),
-      stdbox(66,19) movestep(0,19),
-      stdbox(66,10) movestep(0,10)
+      stdbox(72,19) movestep(0,19),
+      stdbox(72,10) movestep(0,10)
     )
   )
 }
 
 barrelStart(x,y) {
   sectortype(0,$scroll_north)
-  step(11,0)
-  linetype(269,starterTag(x,y)) right(20)
-  linetype(0,0) right(11)
-  right(20)
-  rightsector(0,128,161)
-  rotright
+  stdboxwithfrontline(11,20,269,starterTag(x,y))
   movestep(10,10)
-  setthing(2035)
+  barrel
   thing
   movestep(1,-10)
   box(0,128,161,11,20)
   movestep(11,0)
+}
+
+aliveCellBlock(x,y) {
+  sectortype(0,cellAliveTag(x,y))
+  stdboxwithfrontline(17,32,269,cellDeadTag(x,y))
+  sectortype(0,$scroll_north)
+  movestep(16,16)
+  teleportlanding
+  thing
+  movestep(1,-16)
+  stdbox(15,32)
+  movestep(15,0)
+  sectortype(0,cellAliveBlockerTag(x,y))
+  box(25,128,161,1,32)
+  sectortype(0,$scroll_north)
+  movestep(1,0)
 }
 
 neighbourString(x, y, neighbIx) {
@@ -268,7 +265,10 @@ initializeLineTags {
       set(cat3("killCell",x,y),newtag)
       set(cat3("keepCell",x,y),newtag)
       set(cat3("reviveCell",x,y),newtag)
-      set(cat3("monsterBlocker",x,y),newtag)
+      set(cat3("cellDead",x,y),newtag)
+      set(cat3("cellDeadBlocker",x,y),newtag)
+      set(cat3("cellAlive",x,y),newtag)
+      set(cat3("cellAliveBlocker",x,y),newtag)
       forvar("neighbIx",0,7,
         forvar("neighbCnt",0,3,
           set(cat5("check",get("x"),get("y"),get("neighbIx"),get("neighbCnt")),newtag)
@@ -304,12 +304,37 @@ keepCellTag(x,y) {
 reviveCellTag(x,y) {
   get(cat3("reviveCell",x,y))
 }
-monsterBlockerTag(x,y) {
-  get(cat3("monsterBlocker",x,y))
+cellDeadTag(x,y) {
+  get(cat3("cellDead",x,y))
+}
+cellDeadBlockerTag(x,y) {
+  get(cat3("cellDeadBlocker",x,y))
+}
+cellAliveTag(x,y) {
+  get(cat3("cellAlive",x,y))
+}
+cellAliveBlockerTag(x,y) {
+  get(cat3("cellAliveBlocker",x,y))
 }
 
-stdbox(w,h) {
-  box(0,128,161,w,h)
+stdbox(x,y) {
+  box(0,128,161,x,y)
+}
+stdboxwithfrontline(x,y,type,tag) {
+  linetype(0,0) straight(x)
+  linetype(type,tag) right(y)
+  linetype(0,0) right(x)
+  right(y)
+  rightsector(0,128,161)
+  rotright
+}
+stdboxwithfrontandbackline(x,y,fronttype,fronttag,backtype,backtag) {
+  linetype(0,0) straight(x)
+  linetype(fronttype,fronttag) right(y)
+  linetype(0,0) right(x)
+  linetype(backtype,backtag) right(y)
+  rightsector(0,128,161)
+  rotright
 }
 
 flipright(len) {
