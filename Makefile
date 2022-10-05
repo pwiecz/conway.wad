@@ -2,12 +2,14 @@ PHONY=all test
 
 all: conway.wad
 
-conway.wad: conway.wl
-	wadccli conway.wl
-	bsp conway.wad -z -o conway_bsp.wad
-	mv conway_bsp.wad conway.wad
-	wadptr -c conway.wad -o conway_compressed.wad
-	mv conway_compressed.wad conway.wad
+#conway.wad: conway_nonoptimized.wad
+#	wadptr -c $< -o $@onway.wad
+ 
+conway.wad: conway_nobsp.wad
+	bsp $< -R -z -o $@
+
+conway_nobsp.wad: conway.wl
+	wadccli -nosrc -o $@ $<
 
 test: conway.wad
-	prboom-plus -complevel 9 -warp 1 -file conway.wad
+	prboom-plus -complevel 9 -warp 1 -file $<
