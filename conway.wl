@@ -7,7 +7,7 @@
 rowCount {4}
 colCount {4}
 -- scrollSpeed { 45 }
-scrollSpeed { 16 }
+scrollSpeed { 20 }
 barrel { setthing(2035) }
 burningbarrel { setthing(70) }
 browntree { setthing(54) }
@@ -21,15 +21,16 @@ main {
   linetype(0,0) right(1)
   right(scrollSpeed)
   right(1)
-  rightsector(0,0,0)
+  sectortype(0,$scroll_north)
+  rightsector(0,128,161)
   rotright
+  set("scrollingSector",lastsector)
   movestep(0,1)
   
   initializeLineTags  
 
   !controlSectors
-  movestep(mul(rowCount,100),0)
-  box(25,128,161,add(mul(rowCount,3),2),add(mul(colCount,5),2))
+  box(25,128,161,add(mul(rowCount,3),2),add(mul(colCount,7),2))
   movestep(1,1)
   sectortype(0,barrelStartBlockerTag)
   ibox(25,128,161,1,1)
@@ -46,6 +47,14 @@ main {
       ibox(25,128,161,1,1)
       set(cat3("cellAliveBlockerSector",x,y),lastsector)
       movestep(-1,1)
+      sectortype(0,cellKilledBlockerTag(x,y))
+      ibox(0,128,161,1,1)
+      set(cat3("cellKilledBlockerSector",x,y),lastsector)
+      movestep(1,1)
+      sectortype(0,cellRevivedBlockerTag(x,y))
+      ibox(25,128,161,1,1)
+      set(cat3("cellRevivedBlockerSector",x,y),lastsector)
+      movestep(-1,1)
       sectortype(0,cellFinishedTag(x,y))
       ibox(25,128,161,1,1)
       set(cat3("cellFinishedSector",x,y),lastsector)
@@ -53,15 +62,14 @@ main {
       sectortype(0,cellStartedTag(x,y))
       ibox(25,128,161,1,1)
       set(cat3("cellStartedSector",x,y),lastsector)
-      movestep(2,-3)
+      movestep(2,-5)
     )
     ^column
-    movestep(0,5)
+    movestep(0,7)
   )
   ^controlSectors
+  movestep(0,add(mul(colCount,7),2))
   
-  sectortype(0, $scroll_north)
-
   !barrels
   forvar("x",0,sub(rowCount,1),
     !column
@@ -187,77 +195,76 @@ main {
 checkLadderStep(x, y, neighbIx, neighbCnt) {
   if(lessthaneq(1,neighbCnt),
     movestep(1,1)
-    fliplinesector(20,0,checkeeOkLineTag(x,y,sub(neighbIx,1),sub(neighbCnt,1)),get("ladderBox"))
+    fliplinesector(20,0,checkeeOkLineTag(x,y,sub(neighbIx,1),sub(neighbCnt,1)),get("scrollingSector"))
     movestep(0,-1)
   )
   movestep(1,1)
-  linesector(20,244,checkeeLineTag(x,y,neighbIx,neighbCnt),get("ladderBox"))
+  linesector(20,244,checkeeLineTag(x,y,neighbIx,neighbCnt),get("scrollingSector"))
   movestep(0,-1)
 }
 
 checkLadderForCell(x, y) {
-  sectortype(0,$scroll_north)
+  forcesector(get("scrollingSector"))
   box(0,128,161,68,22)
-  set("ladderBox",lastsector)
   movestep(10,1)
-  fliplinesector(20,0,startCheckTag(x,y),get("ladderBox"))
+  fliplinesector(20,0,startCheckTag(x,y),get("scrollingSector"))
   movestep(0,-1)
   fori(0, 6,
     checkLadderStep(x, y, i, 0)
   )
   movestep(1,1)
-  linesector(20,269,killCellTag(x,y),get("ladderBox"))
+  linesector(20,269,killCellTag(x,y),get("scrollingSector"))
   movestep(0, -1)
 
   fori(1,7,
     checkLadderStep(x, y, i, 1)
   )
   movestep(1,1)
-  linesector(20,269,killCellTag(x,y),get("ladderBox"))
+  linesector(20,269,killCellTag(x,y),get("scrollingSector"))
   movestep(0,-1)
 
   fori(2,7,
     checkLadderStep(x, y, i, 2)
   )
   movestep(1,1)
-  linesector(20,269,waitAllNbrsFinishedTag(x,y),get("ladderBox"))
+  linesector(20,269,waitAllNbrsFinishedTag(x,y),get("scrollingSector"))
   movestep(0,-1)
 
   fori(3,7,
     checkLadderStep(x, y, i, 3)
   )
   movestep(1,1)
-  linesector(20,269,reviveCellTag(x,y),get("ladderBox"))
+  linesector(20,269,reviveCellTag(x,y),get("scrollingSector"))
   movestep(0, -1)
   --headroom for front of the barrel
   movestep(11,0)
 }
 
 checkerForCell(x, y) {
+  forcesector(get("scrollingSector"))
   stdbox(120,122)
-  set("checkerBox",lastsector)
   movestep(0,11)
   set("neighbIx",0)
   !neighbs
   forvar("col",0,1,
     !neighbourColumn
     forvar("row",0,3,
-    movestep(10,0)
-      fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),0),get("checkerBox"))
+      movestep(10,0)
+      fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),0),get("scrollingSector"))
       movestep(1,0)
-      linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),0),get("checkerBox"))
+      linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),0),get("scrollingSector"))
       movestep(1,0)
-	fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),1),get("checkerBox"))
+	fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),1),get("scrollingSector"))
 	movestep(1,0)
-	linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),1),get("checkerBox"))
+	linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),1),get("scrollingSector"))
 	movestep(1,0)
-	fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),2),get("checkerBox"))
+	fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),2),get("scrollingSector"))
 	movestep(1,0)
-	linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),2),get("checkerBox"))
+	linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),2),get("scrollingSector"))
 	movestep(1,0)
-	fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),3),get("checkerBox"))
+	fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),3),get("scrollingSector"))
 	movestep(1,0)
-	linesector(2,269,get(cat2("killCell",invNeighbourString(x,y,get("neighbIx")))),get("checkerBox"))
+	linesector(2,269,get(cat2("killCell",invNeighbourString(x,y,get("neighbIx")))),get("scrollingSector"))
         movestep(11,0)
         inc("neighbIx",1)
       )
@@ -274,12 +281,17 @@ checkerForCell(x, y) {
 --      browntree
 --      burningbarrel
 --      player1start
-      movestep(0,-1)
-      fliplinesector(2,0,cellDeadTag(x,y),get("checkerBox"))
+--      movestep(-3,-1)
+      movestep(-3,-1)
+      fliplinesector(2,0,cellDeadTag(x,y),get("scrollingSector"))
       movestep(1,0)
-      linesector(2,raisefloor,cellAliveBlockerTag(x,y),get("checkerBox"))
+      linesector(2,lowerfloor,cellKilledBlockerTag(x,y),get("scrollingSector"))
       movestep(1,0)
-      linesector(2,244,cellAliveTag(x,y),get("checkerBox"))
+      linesector(2,raisefloor,cellRevivedBlockerTag(x,y),get("scrollingSector"))
+      movestep(2,0)
+      linesector(2,raisefloor,cellAliveBlockerTag(x,y),get("scrollingSector"))
+      movestep(1,0)
+      linesector(2,244,cellAliveTag(x,y),get("scrollingSector"))
       movestep(46,-1)
       forcesector(cellDeadBlockerSector(x,y))
       ibox(25,128,161,1,2)
@@ -294,15 +306,17 @@ killCellBlock(x, y) {
   teleportlanding
   thingangle(rotatedAngle(angle_north))
   movestep(1,-11)
-  sectortype(0,$scroll_north)
-  stdbox(14,22)
-  set("killCellBox",lastsector)
+  forcesector(get("scrollingSector"))
+  stdbox(15,22)
   movestep(1,1)
-  linesector(22,lowerfloor,cellAliveBlockerTag(x,y),get("killCellBox"))
-  movestep(1,0)
-  linesector(22,269,waitAllNbrsFinishedTag(x,y),get("killCellBox"))
+  linesector(20,lowerfloor,cellAliveBlockerTag(x,y),get("scrollingSector"))
+  movestep(11,0)
+  forcesector(cellKilledBlockerSector(x,y))
+  ibox(0,128,161,1,20)
+  movestep(-9,0)
+  linesector(20,269,waitAllNbrsFinishedTag(x,y),get("scrollingSector"))
   ^killCellBlock
-  movestep(25,0)
+  movestep(26,0)
 }
 reviveCellBlock(x, y) {
   !reviveCellBlock
@@ -312,15 +326,17 @@ reviveCellBlock(x, y) {
   teleportlanding
   thingangle(rotatedAngle(angle_north))
   movestep(1,-11)
-  sectortype(0,$scroll_north)
-  stdbox(14,22)
-  set("reviveCellBox",lastsector)
+  forcesector(get("scrollingSector"))
+  stdbox(15,22)
   movestep(1,1)
-  linesector(20,lowerfloor,cellDeadBlockerTag(x,y),get("reviveCellBox"))
-  movestep(1,0)
-  linesector(20,269,waitAllNbrsFinishedTag(x,y),get("reviveCellBox"))
+  linesector(20,lowerfloor,cellDeadBlockerTag(x,y),get("scrollingSector"))
+  movestep(11,0)
+  forcesector(cellRevivedBlockerSector(x,y))
+  ibox(0,128,161,1,20)
+  movestep(-9,0)
+  linesector(20,269,waitAllNbrsFinishedTag(x,y),get("scrollingSector"))
   ^reviveCellBlock
-  movestep(25,0)
+  movestep(26,0)
 }
 --keepCellBlock(x, y) {
 --  !keepCellBlock
@@ -347,36 +363,33 @@ waitAllNbrsFinishedBlock(x,y) {
   teleportlanding
   thingangle(rotatedAngle(angle_north))
   movestep(1,-11)
-  sectortype(0,$scroll_north)
-  stdbox(19,22)
-  set("waitAllNbrsFinishedBlock",lastsector)
+  forcesector(get("scrollingSector"))
+  stdbox(26,22)
   movestep(1,1)
-  linesector(20,lowerfloor,cellFinishedTag(x,y),get("waitAllNbrsFinishedBlock"))
+  linesector(20,lowerfloor,cellFinishedTag(x,y),get("scrollingSector"))
   movestep(11,-1)
   !allFinished
   movestep(0,1)
   forvar("neighbIx",0,7,
     forcesector(cellFinishedSector(x,y,get("neighbIx")))
---    sectortype(0,cat2("cellFinished",neighbourString(x,y,get("neighbIx"))))
     ibox(0,42,161,1,1)
     movestep(0,2)
   )
   ^allFinished
-  movestep(-9,1)
-  linesector(20,244,allNbrsFinishedTag(x,y),get("waitAllNbrsFinishedBlock"))
+  movestep(2,1)
+  linesector(20,244,allNbrsFinishedTag(x,y),get("scrollingSector"))
   ^waitAll
-  movestep(30,0)
+  movestep(37,0)
 }
 
 waitAllNbrsStartedBlock(x,y) {
   !waitAll
-  sectortype(0,$scroll_north)
-  stdbox(30, 22)
-  set("waitAllNbrsStartedBlock",lastsector)
+  forcesector(get("scrollingSector"))
+  stdbox(37, 22)
   movestep(10,1)
-  fliplinesector(20,0,allNbrsFinishedTag(x,y),get("waitAllNbrsStartedBlock"))
+  fliplinesector(20,0,allNbrsFinishedTag(x,y),get("scrollingSector"))
   movestep(1,0)
-  linesector(20,lowerfloor,cellStartedTag(x,y),get("waitAllNbrsStartedBlock"))
+  linesector(20,lowerfloor,cellStartedTag(x,y),get("scrollingSector"))
   movestep(12,0)
   !allStarted
   forvar("neighbIx",0,7,
@@ -386,12 +399,12 @@ waitAllNbrsStartedBlock(x,y) {
     movestep(0,2)
   )
   ^allStarted
-  movestep(-10,0)
-  linesector(20,raisefloor,cellFinishedTag(x,y),get("waitAllNbrsStartedBlock"))
+  movestep(2,0)
+  linesector(20,raisefloor,cellFinishedTag(x,y),get("scrollingSector"))
   movestep(1,0)
-  linesector(20,244,startCheckTag(x,y),get("waitAllNbrsStartedBlock"))
+  linesector(20,244,startCheckTag(x,y),get("scrollingSector"))
   ^waitAll
-  movestep(30,0)
+  movestep(37,0)
 }
 
 linesector(len,type,tag,sectorIndex) {
@@ -410,43 +423,40 @@ fliplinesector(len,type,tag,sectorIndex) {
 }
 
 barrelStart(x,y) {
-  sectortype(0,$scroll_north)
-  stdbox(11,22)
+  forcesector(get("scrollingSector"))
+  stdbox(22,22)
   movestep(10,11)
   barrel
   thing
-  movestep(1,-11)
+  movestep(1,-10)
+  linesector(20,269,waitAllNbrsFinishedTag(x,y),get("scrollingSector"))
+  movestep(9,0)
   forcesector(get("barrelStartBlockerSector"))
-  box(25,128,161,1,22)
-  movestep(1,0)
-  stdbox(12,22)
-  set("barrelStartBlock",lastsector)
-  movestep(1,1)
-  linesector(20,269,waitAllNbrsFinishedTag(x,y),get("barrelStartBlock"))
-  movestep(11,-1)
+  ibox(25,128,161,1,20)
+  movestep(2,-1)
 }
 
 aliveCellBlock(x,y) {
-  sectortype(0,0)--cellAliveTag(x,y))
+  sectortype(0,0)
+  forcesector(get("scrollingSector"))
   stdboxwithfrontline(49,98,raisefloor,cellDeadBlockerTag(x,y))
-  set("aliveCellBlock1",lastsector)
---  movestep(31,32)
---  teleportlanding
---  thingangle(rotatedAngle(angle_north))
---  movestep(1,-32)
   movestep(48,1)
-  fliplinesector(96,0,cellAliveTag(x,y),get("aliveCellBlock1"))
+  fliplinesector(96,0,cellAliveTag(x,y),get("scrollingSector"))
   movestep(1, -1)
-  sectortype(0,$scroll_north)
-  stdbox(49,98)
-  set("aliveCellBlock",lastsector)
+  forcesector(get("scrollingSector"))
+  stdbox(54,98)
   movestep(2,1)
-  linesector(96,244,cellDeadTag(x,y),get("aliveCellBlock"))
-  movestep(47,-1)
+  linesector(96,lowerfloor,cellRevivedBlockerTag(x,y),get("scrollingSector"))
+  movestep(1,0)
+  linesector(96,raisefloor,cellKilledBlockerTag(x,y),get("scrollingSector"))
+  movestep(1,0)
+  linesector(96,raisefloor,cellDeadBlockerTag(x,y),get("scrollingSector"))
+  movestep(1,0)
+  linesector(96,244,cellDeadTag(x,y),get("scrollingSector"))
+  movestep(44,0)
   forcesector(cellAliveBlockerSector(x,y))
-  box(25,128,161,2,98)
-  sectortype(0,$scroll_north)
-  movestep(2,0)
+  ibox(25,128,161,1,96)
+  movestep(5,-1)
 }
 
 neighbourString(x, y, neighbIx) {
@@ -491,8 +501,10 @@ initializeLineTags {
       set(cat3("reviveCell",x,y),newtag)
       set(cat3("cellDead",x,y),newtag)
       set(cat3("cellDeadBlocker",x,y),newtag)
+      set(cat3("cellKilledBlocker",x,y),newtag)
       set(cat3("cellAlive",x,y),newtag)
       set(cat3("cellAliveBlocker",x,y),newtag)
+      set(cat3("cellRevivedBlocker",x,y),newtag)
       set(cat3("startNextTurn",x,y),newtag)
       set(cat3("cellFinished",x,y),newtag)
       set(cat3("cellStarted",x,y),newtag)
@@ -540,11 +552,17 @@ cellDeadTag(x,y) {
 cellDeadBlockerTag(x,y) {
   get(cat3("cellDeadBlocker",x,y))
 }
+cellKilledBlockerTag(x,y) {
+  get(cat3("cellKilledBlocker",x,y))
+}
 cellAliveTag(x,y) {
   get(cat3("cellAlive",x,y))
 }
 cellAliveBlockerTag(x,y) {
   get(cat3("cellAliveBlocker",x,y))
+}
+cellRevivedBlockerTag(x,y) {
+  get(cat3("cellRevivedBlocker",x,y))
 }
 startNextTurnTag(x,y) {
   get(cat3("startNextTurn",x,y))
@@ -573,8 +591,14 @@ cellStartedSector(x,y,neighbIx) {
 cellAliveBlockerSector(x,y) {
   get(cat3("cellAliveBlockerSector",x,y))
 }
+cellRevivedBlockerSector(x,y) {
+  get(cat3("cellRevivedBlockerSector",x,y))
+}
 cellDeadBlockerSector(x,y) {
   get(cat3("cellDeadBlockerSector",x,y))
+}
+cellKilledBlockerSector(x,y) {
+  get(cat3("cellKilledBlockerSector",x,y))
 }
 stdbox(x,y) {
   box(0,128,161,x,y)
