@@ -1,0 +1,4 @@
+MAP MAP01
+{
+   levelname = "Square of Life"
+}

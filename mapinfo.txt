@@ -1,0 +1,4 @@
+map MAP01 "Square of Life"
+{
+compat_boomscroll = 1
+}
