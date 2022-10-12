@@ -7,7 +7,7 @@
 rowCount {4}
 colCount {4}
 -- scrollSpeed { 45 }
-scrollSpeed { 30 }
+scrollSpeed { 40 }
 barrel { setthing(2035) }
 burningbarrel { setthing(70) }
 browntree { setthing(54) }
@@ -30,7 +30,6 @@ main {
   initializeLineTags  
   sectortype(0,0)
   !controlSectors
---  box(25,128,161,add(mul(rowCount,3),2),add(mul(colCount,7),2))
   box(25,128,161,1,add(mul(colCount,6),1))
   set("raisedSector",lastsector)
   movestep(1,0)
@@ -128,7 +127,7 @@ main {
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
-      killCellBlock(x,y)
+          killCellBlock(x,y)
     )
     ^column
     movestep(0,22)
@@ -212,13 +211,13 @@ main {
 
 checkLadderStep(x, y, neighbIx, neighbCnt) {
   if(lessthaneq(1,neighbCnt),
-    movestep(1,1)
+    if(lessthan(neighbIx,1),die("checkLadderStep(x,y,0,c"))
+    if(lessthan(neighbCnt,1),die("checkLadderStep(x,y,i,0"))
+    movestep(1,0)
     fliplinesector(20,0,checkeeOkLineTag(x,y,sub(neighbIx,1),sub(neighbCnt,1)),get("scrollingSector"))
-    movestep(0,-1)
   )
-  movestep(1,1)
+  movestep(1,0)
   linesector(20,244,checkeeLineTag(x,y,neighbIx,neighbCnt),get("scrollingSector"))
-  movestep(0,-1)
 }
 
 checkLadderForCell(x, y) {
@@ -226,32 +225,28 @@ checkLadderForCell(x, y) {
   box(0,128,161,68,22)
   movestep(10,1)
   fliplinesector(20,0,startCheckTag(x,y),get("scrollingSector"))
-  movestep(0,-1)
   fori(0, 6,
     checkLadderStep(x, y, i, 0)
   )
-  movestep(1,1)
+  movestep(1,0)
   linesector(20,208,killCellTag(x,y),get("scrollingSector"))
-  movestep(0, -1)
 
   fori(1,7,
     checkLadderStep(x, y, i, 1)
   )
-  movestep(1,1)
+  movestep(1,0)
   linesector(20,208,killCellTag(x,y),get("scrollingSector"))
-  movestep(0,-1)
 
   fori(2,7,
     checkLadderStep(x, y, i, 2)
   )
-  movestep(1,1)
+  movestep(1,0)
   linesector(20,208,keepCellTag(x,y),get("scrollingSector"))
-  movestep(0,-1)
 
   fori(3,7,
     checkLadderStep(x, y, i, 3)
   )
-  movestep(1,1)
+  movestep(1,0)
   linesector(20,208,reviveCellTag(x,y),get("scrollingSector"))
   movestep(0, -1)
   --headroom for front of the barrel
@@ -272,47 +267,47 @@ checkerForCell(x, y) {
       movestep(1,0)
       linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),0),get("scrollingSector"))
       movestep(1,0)
-	fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),1),get("scrollingSector"))
-	movestep(1,0)
-	linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),1),get("scrollingSector"))
-	movestep(1,0)
-	fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),2),get("scrollingSector"))
-	movestep(1,0)
-	linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),2),get("scrollingSector"))
-	movestep(1,0)
-	fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),3),get("scrollingSector"))
-	movestep(1,0)
-	linesector(2,208,get(cat2("killCell",invNeighbourString(x,y,get("neighbIx")))),get("scrollingSector"))
-        movestep(11,0)
-        inc("neighbIx",1)
-      )
-      ^neighbourColumn
-      movestep(0,98)
+      fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),1),get("scrollingSector"))
+      movestep(1,0)
+      linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),1),get("scrollingSector"))
+      movestep(1,0)
+      fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),2),get("scrollingSector"))
+      movestep(1,0)
+      linesector(2,244,checkerOkLineTag(x,y,get("neighbIx"),2),get("scrollingSector"))
+      movestep(1,0)
+      fliplinesector(2,0,checkerLineTag(x,y,get("neighbIx"),3),get("scrollingSector"))
+      movestep(1,0)
+      linesector(2,208,get(cat2("killCell",invNeighbourString(x,y,get("neighbIx")))),get("scrollingSector"))
+      movestep(11,0)
+      inc("neighbIx",1)
     )
-    ^neighbs
-      movestep(56,50)
+    ^neighbourColumn
+    movestep(0,98)
+  )
+  ^neighbs
+  movestep(56,50)
 --      cacodemon
 --      demon
 --      archvile
-      mancubus
-      thingangle(rotatedAngle(angle_west))
+  mancubus
+  thingangle(rotatedAngle(angle_west))
 --      browntree
 --      burningbarrel
 --      player1start
 --      movestep(-3,-1)
-      movestep(-3,-10)
-      fliplinesector(20,0,cellDeadTag(x,y),get("scrollingSector"))
-      movestep(1,0)
-      linesector(20,lowerfloor,cellKilledBlockerTag(x,y),get("scrollingSector"))
-      movestep(1,0)
-      linesector(20,raisefloor,cellRevivedBlockerTag(x,y),get("scrollingSector"))
-      movestep(2,0)
-      linesector(20,raisefloor,cellAliveBlockerTag(x,y),get("scrollingSector"))
-      movestep(1,0)
-      linesector(20,244,cellAliveTag(x,y),get("scrollingSector"))
-      movestep(46,0)
-      forcesector(cellDeadBlockerSector(x,y))
-      ibox(25,128,161,1,20)
+  movestep(-3,-10)
+  fliplinesector(20,0,cellDeadTag(x,y),get("scrollingSector"))
+  movestep(1,0)
+  linesector(20,lowerfloor,cellKilledBlockerTag(x,y),get("scrollingSector"))
+  movestep(1,0)
+  linesector(20,raisefloor,cellRevivedBlockerTag(x,y),get("scrollingSector"))
+  movestep(2,0)
+  linesector(20,raisefloor,cellAliveBlockerTag(x,y),get("scrollingSector"))
+  movestep(1,0)
+  linesector(20,244,cellAliveTag(x,y),get("scrollingSector"))
+  movestep(46,0)
+  forcesector(cellDeadBlockerSector(x,y))
+  ibox(25,128,161,1,20)
 }
 
 aliveCellBlock(x,y) {
@@ -508,7 +503,9 @@ barrelStart(x,y) {
   stdbox(22,22)
   movestep(10,11)
   barrel
+--  if(and(eq(x,1),eq(y,1)),
   thing
+--  )
   movestep(1,-10)
   linesector(20,208,keepCellTag(x,y),get("scrollingSector"))
   movestep(9,0)
@@ -518,6 +515,7 @@ barrelStart(x,y) {
 }
 
 neighbourString(x, y, neighbIx) {
+  if(or(lessthan(neighbIx,0),lessthan(7,neighbIx)),die(neighbIx))
   ifelse(eq(neighbIx,0),
     cat2(subx1(x),suby1(y)),
     ifelse(eq(neighbIx,1),
@@ -669,14 +667,6 @@ stdboxwithfrontline(x,y,type,tag) {
   rightsector(0,128,161)
   rotright
 }
-stdboxwithfrontandbackline(x,y,fronttype,fronttag,backtype,backtag) {
-  linetype(0,0) straight(x)
-  linetype(fronttype,fronttag) right(y)
-  linetype(0,0) right(x)
-  linetype(backtype,backtag) right(y)
-  rightsector(0,128,161)
-  rotright
-}
 
 flipright(len) {
   rotright up step(len,0) down turnaround step(len,0) up turnaround step(len,0) down
@@ -695,30 +685,6 @@ cat5(a, b, c, d, e) {
   cat2(a, cat4(b, c, d, e))
 }
 
-forj(from, to, body) {
-    set("j", from)
-    for(from, to,
-        body
-        inc("j",1)
-    )
-}
-j { get("j") }
-fork(from, to, body) {
-    set("k", from)
-    for(from, to,
-        body
-        inc("k",1)
-    )
-}
-k { get("k") }
-forl(from, to, body) {
-    set("l", from)
-    for(from, to,
-        body
-        inc("l",1)
-    )
-}
-l { get("l") }
 forvar(var,from,to,body) {
   set(var, from)
   for(from, to,
