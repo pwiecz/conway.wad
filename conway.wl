@@ -410,7 +410,7 @@ keepCellBlock(x, y) {
   forcesector(get("scrollingSector"))
   stdbox(53,32)
   movestep(1,6)
-  forvar("nbrIx",0,7,
+  forvar("nbrIx",1,7,
     linesector(20,lowerfloor,cellFinishedTag(x,y,get("nbrIx")),get("scrollingSector"))
     movestep(1,0)
   )
