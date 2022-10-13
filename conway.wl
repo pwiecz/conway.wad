@@ -4,10 +4,10 @@
 #"spawns.h"
 #"standard.h"
 
-rowCount {4}
-colCount {4}
+rowCount {10}
+colCount {10}
 -- scrollSpeed { 45 }
-scrollSpeed { 40 }
+scrollSpeed { 30 }
 barrel { setthing(2035) }
 burningbarrel { setthing(70) }
 browntree { setthing(54) }
@@ -16,7 +16,9 @@ lowerfloor { 24809 }
 
 main {
   turnaround
-  undefx	
+  undefx
+  !origin
+  movestep(mul(128,rowCount),0)
   linetype(253, $scroll_north) straight(scrollSpeed)
   linetype(0,0) right(1)
   right(scrollSpeed)
@@ -97,6 +99,7 @@ main {
   )
   ^ladders
   movestep(0,mul(30,colCount))
+  ^origin
   !checkers
   forvar("x",0,sub(colCount,1),
     !column
@@ -104,13 +107,13 @@ main {
       !checker
       checkerForCell(get("x"),get("y"))
       ^checker
-      movestep(130,0)
+      movestep(128,0)
     )      
     ^column
-    movestep(0,142)
+    movestep(0,128)
   )
   ^checkers
-  movestep(0,mul(142,colCount))
+  movestep(0,mul(128,colCount))
   !aliveCells
   forvar("x",0,sub(colCount,1),
     !column
@@ -118,10 +121,10 @@ main {
       aliveCellBlock(get("x"),get("y"))
     )
     ^column
-    movestep(0,116)
+    movestep(0,128)
   )
   ^aliveCells  
-  movestep(0,mul(116,colCount))
+  movestep(0,mul(128,colCount))
 
   !killCells
   forvar("x",0,sub(colCount,1),
@@ -130,10 +133,10 @@ main {
           killCellBlock(x,y)
     )
     ^column
-    movestep(0,30)
+    movestep(0,32)
   )
   ^killCells
-  movestep(0,mul(30,colCount))
+  movestep(0,mul(32,colCount))
 
   !reviveCells
   forvar("x",0,sub(colCount,1),
@@ -142,10 +145,10 @@ main {
       reviveCellBlock(x,y)
     )
     ^column
-    movestep(0,30)
+    movestep(0,32)
   )
   ^reviveCells
-  movestep(0,mul(30,colCount))
+  movestep(0,mul(32,colCount))
 
   !keepCells
   forvar("x",0,sub(colCount,1),
@@ -154,10 +157,10 @@ main {
       keepCellBlock(x,y)
     )
     ^column
-    movestep(0,30)
+    movestep(0,32)
   )
   ^keepCells
-  movestep(0,mul(30,colCount))
+  movestep(0,mul(32,colCount))
   
 --  !waitNbrsFinished
 --  forvar("x",0,sub(colCount,1),
@@ -177,10 +180,10 @@ main {
       waitAllNbrsStartedBlock(x,y)
     )
     ^column
-    movestep(0,30)
+    movestep(0,32)
   )
   ^waitNbrsStarted
-  movestep(0,mul(30,colCount))
+  movestep(0,mul(32,colCount))
   
   sectortype(0, $mainArea)
   stdbox(1000, 1000)
@@ -255,8 +258,8 @@ checkLadderForCell(x, y) {
 
 checkerForCell(x, y) {
   forcesector(get("scrollingSector"))
-  stdbox(130,142)
-  movestep(0,21)
+  stdbox(128,128)
+  movestep(0,14)
   set("neighbIx",0)
   !neighbs
   forvar("col",0,1,
@@ -313,9 +316,9 @@ checkerForCell(x, y) {
 aliveCellBlock(x,y) {
   sectortype(0,0)
   forcesector(get("scrollingSector"))
-  stdbox(123,116)
+  stdbox(128,128)
 --  stdboxwithfrontline(49,98,raisefloor,cellDeadBlockerTag(x,y))
-  movestep(58,10)
+  movestep(58,16)
   fliplinesector(96,0,cellAliveTag(x,y),get("scrollingSector"))
 --  movestep(1, -1)
 --  forcesector(get("scrollingSector"))
@@ -332,20 +335,20 @@ aliveCellBlock(x,y) {
   movestep(46,0)
   forcesector(cellAliveBlockerSector(x,y))
   ibox(25,128,161,1,96)
-  movestep(14,-10)
+  movestep(19,-16)
 }
 
 killCellBlock(x, y) {
   !killCellBlock
   sectortype(0,killCellTag(x,y))
-  stdboxwithfrontline(11,30,raisefloor,cellStartedTag(x,y))
-  movestep(10,15)
+  stdboxwithfrontline(11,32,raisefloor,cellStartedTag(x,y))
+  movestep(10,16)
   teleportlanding
   thingangle(rotatedAngle(angle_north))
-  movestep(1,-15)
+  movestep(1,-16)
   forcesector(get("scrollingSector"))
-  stdbox(27,30)
-  movestep(1,5)
+  stdbox(21,32)
+  movestep(1,6)
   linesector(20,lowerfloor,cellFinishedTag(x,y),get("scrollingSector"))
   movestep(11,2)
   !allFinished
@@ -365,19 +368,19 @@ killCellBlock(x, y) {
   movestep(-9,0)
   linesector(20,208,allNbrsFinishedTag(x,y),get("scrollingSector"))
   ^killCellBlock
-  movestep(38,0)
+  movestep(32,0)
 }
 reviveCellBlock(x, y) {
   !reviveCellBlock
   sectortype(0,reviveCellTag(x,y))
-  stdboxwithfrontline(11,30,raisefloor,cellStartedTag(x,y))
-  movestep(10,15)
+  stdboxwithfrontline(11,32,raisefloor,cellStartedTag(x,y))
+  movestep(10,16)
   teleportlanding
   thingangle(rotatedAngle(angle_north))
-  movestep(1,-15)
+  movestep(1,-16)
   forcesector(get("scrollingSector"))
-  stdbox(27,30)
-  movestep(1,5)
+  stdbox(21,32)
+  movestep(1,6)
   linesector(20,lowerfloor,cellFinishedTag(x,y),get("scrollingSector"))
   movestep(11,2)
   !allFinished
@@ -397,19 +400,19 @@ reviveCellBlock(x, y) {
   movestep(-9,0)
   linesector(20,208,allNbrsFinishedTag(x,y),get("scrollingSector"))
   ^reviveCellBlock
-  movestep(38,0)
+  movestep(32,0)
 }
 keepCellBlock(x, y) {
   !keepCellBlock
   sectortype(0,keepCellTag(x,y))
-  stdboxwithfrontline(11,30,raisefloor,cellStartedTag(x,y))
-  movestep(10,15)
+  stdboxwithfrontline(11,32,raisefloor,cellStartedTag(x,y))
+  movestep(10,16)
   teleportlanding
   thingangle(rotatedAngle(angle_north))
-  movestep(1,-15)
+  movestep(1,-16)
   forcesector(get("scrollingSector"))
-  stdbox(25,30)
-  movestep(1,5)
+  stdbox(21,32)
+  movestep(1,6)
   linesector(20,lowerfloor,cellFinishedTag(x,y),get("scrollingSector"))
   movestep(11,2)
   !allFinished
@@ -422,7 +425,7 @@ keepCellBlock(x, y) {
   movestep(-9,-2)
   linesector(20,208,allNbrsFinishedTag(x,y),get("scrollingSector"))
   ^keepCellBlock  
-  movestep(36,0)
+  movestep(32,0)
 }
 --waitAllNbrsFinishedBlock(x,y) {
 --  !waitAll
@@ -454,18 +457,18 @@ keepCellBlock(x, y) {
 waitAllNbrsStartedBlock(x,y) {
   !waitAll
   sectortype(0,allNbrsFinishedTag(x,y))
-  stdboxwithfrontline(11,30,lowerfloor,cellStartedTag(x,y))
-  movestep(10,15)
+  stdboxwithfrontline(11,32,lowerfloor,cellStartedTag(x,y))
+  movestep(10,16)
   teleportlanding
   thingangle(rotatedAngle(angle_north))
-  movestep(1,-15)  
+  movestep(1,-16)  
   forcesector(get("scrollingSector"))
-  stdbox(14,30)
+  stdbox(21,32)
 --  movestep(10,1)
 --  fliplinesector(20,0,allNbrsFinishedTag(x,y),get("scrollingSector"))
 --  movestep(1,0)
 --  linesector(20,lowerfloor,cellStartedTag(x,y),get("scrollingSector"))
-  movestep(11,7)
+  movestep(11,8)
   !allStarted
   forvar("neighbIx",0,7,
     forcesector(cellStartedSector(x,y,get("neighbIx")))
@@ -479,7 +482,7 @@ waitAllNbrsStartedBlock(x,y) {
   movestep(1,0)
   linesector(20,244,startCheckTag(x,y),get("scrollingSector"))
   ^waitAll
-  movestep(25,0)
+  movestep(32,0)
 }
 
 linesector(len,type,tag,sectorIndex) {
