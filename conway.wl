@@ -4,8 +4,9 @@
 #"spawns.h"
 #"standard.h"
 
-rowCount {4}
-colCount {4}
+rowCount {8}
+colCount {8}
+ceilingHeight { add(mul(rowCount,128),300) }
 -- scrollSpeed { 45 }
 scrollSpeed { 34 }
 barrel { setthing(2035) }
@@ -17,6 +18,7 @@ lowerfloor { 24809 }
 main {
   turnaround
   undefx
+  mid("GRAY1")
   !origin
   movestep(mul(128,rowCount),0)
   linetype(253, $scroll_north) straight(scrollSpeed)
@@ -24,7 +26,7 @@ main {
   right(scrollSpeed)
   right(1)
   sectortype(0,$scroll_north)
-  rightsector(0,128,161)
+  rightsector(0,ceilingHeight,161)
   rotright
   set("scrollingSector",lastsector)
   movestep(0,1)
@@ -191,7 +193,8 @@ main {
   movestep(mul(-128,rowCount),mul(32,colCount))
   
   sectortype(0, $mainArea)
-  stdbox(1000, 1000)
+  stdbox(add(mul(rowCount,192),1000),add(mul(colCount,192),1000))
+  !playbox
   movestep(256, 64)
 
   player1start
@@ -201,21 +204,46 @@ main {
 
   movestep(32,0)
   linetype(lowerfloor,barrelStartBlockerTag)
-  ibox(8,128,161,8,32)
+  ibox(8,ceilingHeight,161,8,32)
   linetype(0,0)
   popsector
 
   movestep(0, 64)
+  bot("COMPSTA1")
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
       linetype(lowerfloor,cellDeadBlockerTag(x,y))
-      ibox(8,128,161,64,64)
+      ibox(16,ceilingHeight,161,128,128)
       popsector
-      movestep(add(64,16),0)
+      movestep(192,0)
     )
     ^column
-    movestep(0,add(64,16))
+    movestep(0,192)
+  )
+  ^playbox
+  movestep(0,add(mul(colCount,192),1000))
+  !c
+  forvar("x",0,sub(colCount,1),
+    bot("MARBFAC3")
+    box(0,ceilingHeight,200,128,4)
+    movestep(128,0)
+  )
+  ^c
+  movestep(0,4)
+  forvar("y",0,sub(rowCount,1),
+    !column
+    forvar("x",0,sub(colCount,1),
+      bot("BIGDOOR7")
+      sectortype(0,marbTag(y,x))
+      box(mul(y,128),ceilingHeight,200,128,4)
+      movestep(0,4)
+      bot("MARBFAC3")
+      box(mul(add(y,1),128),ceilingHeight,200,128,4)
+      movestep(128,-4)
+    )
+    ^column
+    movestep(0,8)
   )
 }
 
@@ -305,20 +333,16 @@ checkerForCell(x, y) {
   )
   ^neighbs
   movestep(56,50)
---      cacodemon
---      demon
---      archvile
---      browntree
---      burningbarrel
---      player1start
   mancubus
   thingangle(rotatedAngle(angle_west))
-  movestep(-3,-10)
+  movestep(-4,-10)
   fliplinesector(20,0,cellDeadTag(x,y),get("scrollingSector"))
   movestep(1,0)
   linesector(20,raisefloor,cellRevivedBlockerTag(x,y),get("scrollingSector"))
   movestep(1,0)
   linesector(20,lowerfloor,cellKilledBlockerTag(x,y),get("scrollingSector"))
+  movestep(1,0)
+  linesector(20,lowerfloor,marbTag(x,y),get("scrollingSector"))
   movestep(2,0)
   linesector(20,raisefloor,cellAliveBlockerTag(x,y),get("scrollingSector"))
   movestep(1,0)
@@ -337,6 +361,8 @@ aliveCellBlock(x,y) {
   linesector(96,raisefloor,cellKilledBlockerTag(x,y),get("scrollingSector"))
   movestep(1,0)
   linesector(96,lowerfloor,cellRevivedBlockerTag(x,y),get("scrollingSector"))
+  movestep(1,0)
+  linesector(96,raisefloor,marbTag(x,y),get("scrollingSector"))
   movestep(2,0)
   linesector(96,raisefloor,cellDeadBlockerTag(x,y),get("scrollingSector"))
   movestep(1,0)
@@ -567,6 +593,7 @@ initializeTags {
       set(cat3("startNextTurn",x,y),newtag)
       set(cat3("startCheck",x,y),newtag)
       set(cat3("allNbrsFinished",x,y),newtag)
+      set(cat3("marb",x,y),newtag)
       forvar("nbrIx",0,7,
         set(cat4("cellFinished",x,y,get("nbrIx")),newtag)
         set(cat4("cellStarted",x,y,get("nbrIx")),newtag)
@@ -661,8 +688,11 @@ cellDeadBlockerSector(x,y) {
 cellKilledBlockerSector(x,y) {
   get(cat3("cellKilledBlockerSector",x,y))
 }
+marbTag(x,y) {
+  get(cat3("marb",x,y))
+}
 stdbox(x,y) {
-  box(0,128,161,x,y)
+  box(0,ceilingHeight,200,x,y)
 }
 stdboxwithfrontline(x,y,type,tag) {
   linetype(0,0) straight(x)
