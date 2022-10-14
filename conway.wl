@@ -4,8 +4,8 @@
 #"spawns.h"
 #"standard.h"
 
-rowCount {4}
-colCount {4}
+rowCount {3}
+colCount {3}
 -- scrollSpeed { 45 }
 scrollSpeed { 32 }
 barrel { setthing(2035) }
@@ -32,17 +32,19 @@ main {
   initializeTags
   sectortype(0,0)
   !controlSectors
-  sectortype(0,barrelStartBlockerTag)
-  box(25,128,161,1,1)
-  movestep(0,1)
-  set("barrelStartBlockerSector",lastsector)
-  box(25,128,161,1,sub(mul(colCount,20),1))
+  box(25,128,161,1,add(mul(colCount,20),1))
   set("raisedSector",lastsector)
-  movestep(1,-1)
+  movestep(1,0)
   forvar("y",0,sub(rowCount,1),
     !row
     forvar("x",0,sub(colCount,1),
       !cell
+      if(and(eq(x,0),eq(y,0)),
+        sectortype(0,barrelStartBlockerTag)
+        box(25,128,161,1,1)
+        set("barrelStartBlockerSector",lastsector)
+	movestep(0,1)
+      )
       sectortype(0,cellDeadBlockerTag(x,y))
       box(25,128,161,1,1)
       set(cat3("cellDeadBlockerSector",x,y),lastsector)
@@ -71,17 +73,22 @@ main {
         movestep(0,1)
       )
       ^cell
-      movestep(0,20)
+      ifelse(and(eq(x,0),eq(y,0)),
+        movestep(0,21),
+	movestep(0,20))
     )
     ^row
     movestep(1,0)
     forcesector(get("raisedSector"))
-    box(0,0,0,1,mul(colCount,20))
+    box(0,0,0,1,add(mul(colCount,20),1))
     movestep(1,0)
   )
   ^controlSectors
 
   ^origin
+
+  forcesector(get("scrollingSector"))
+  stdbox(mul(128,rowCount),mul(288,colCount))
   !checkers
   forvar("x",0,sub(colCount,1),
     !column
@@ -108,6 +115,7 @@ main {
   ^aliveCells  
   movestep(0,mul(128,colCount))
   !ladders
+  forcesector(get("scrollingSector"))
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
@@ -218,8 +226,6 @@ checkLadderStep(x, y, nbrIx, nbrCnt) {
 
 checkLadderForCell(x, y) {
   !box
-  forcesector(get("scrollingSector"))
-  box(0,0,0,128,32)
   movestep(10,6)
   fliplinesector(20,0,startCheckTag(x,y),get("scrollingSector"))
   forvar("nbrIx",0,7,
@@ -254,8 +260,6 @@ checkLadderForCell(x, y) {
 }
 
 checkerForCell(x, y) {
-  forcesector(get("scrollingSector"))
-  stdbox(128,128)
   movestep(0,14)
   set("neighbIx",0)
   !neighbs
@@ -311,8 +315,6 @@ checkerForCell(x, y) {
 
 aliveCellBlock(x,y) {
   sectortype(0,0)
-  forcesector(get("scrollingSector"))
-  stdbox(128,128)
   movestep(58,16)
   fliplinesector(96,0,cellAliveTag(x,y),get("scrollingSector"))
   movestep(1,0)
