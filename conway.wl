@@ -13,6 +13,7 @@ scrollSpeed { 32 }
 barrel { setthing(2035) }
 raisefloor { 24617 }
 lowerfloor { 24809 }
+lowerfloor1 { 24808 }
 
 main {
   turnaround
@@ -33,13 +34,13 @@ main {
   initializeTags
   sectortype(0,0)
   !controlSectors
-  box(25,ceilingHeight,200,1,mul(colCount,20))
+  box(25,ceilingHeight,200,1,add(mul(colCount,21),1))
   set("raisedSector",lastsector)
   movestep(1,0)
   sectortype(0,barrelStartBlockerTag)
   box(25,ceilingHeight,200,1,1)
-  set("barrelStartBlockerSector",lastsector)
   movestep(0,1)
+  set("barrelStartBlockerSector",lastsector)
   forvar("y",0,sub(rowCount,1),
     !row
     forvar("x",0,sub(colCount,1),
@@ -59,6 +60,10 @@ main {
       box(25,ceilingHeight,200,1,1)
       set(cat3("cellRevivedBlockerSector",x,y),lastsector)
       movestep(0,1)
+      sectortype(0,stepTag(x,y))
+      box(13,ceilingHeight,200,1,1)
+      set(cat3("stepSector",x,y),lastsector)
+      movestep(0,1)
       forvar("nbrIx",0,7,
         sectortype(0,cellFinishedTag(x,y,get("nbrIx")))
         box(25,ceilingHeight,200,1,1)
@@ -74,7 +79,7 @@ main {
     movestep(1,0)
 
     forcesector(get("raisedSector"))
-    box(0,0,0,1,mul(colCount,20))
+    box(0,0,0,1,mul(colCount,21))
     movestep(1,0)
   )
   ^controlSectors
@@ -193,7 +198,8 @@ main {
   movestep(mul(64,rowCount),0)
 
   !barrels
-  box(0,ceilingHeight,200,mul(32,rowCount),mul(32,colCount))
+  forcesector(get("scrollingSector"))
+  box(0,0,0,mul(32,rowCount),mul(32,colCount))
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
@@ -208,18 +214,18 @@ main {
   ^barrels
   movestep(mul(-128,rowCount),mul(32,colCount))
   
-  sectortype(0, $mainArea)
-  stdbox(add(mul(rowCount,226),1000),add(mul(colCount,226),1000))
+  sectortype(0,0)
+  stdbox(add(mul(rowCount,226),500),add(mul(colCount,226),500))
   !playbox
-  movestep(256, 64)
+  movestep(16, 16)
 
   player1start
-  thingangle(rotatedAngle(angle_west))
+  thingangle(rotatedAngle(angle_east))
 
-  movestep(-224, 0)
+  ^playbox
 
   yoff(32)
-  movestep(32,0)
+  movestep(1, 32)
   bot("BROWN96")
   right(32)
   left(8)
@@ -236,14 +242,14 @@ main {
   yoff(0)
   undefx
 
-  movestep(0, 64)
-  bot("ASHWALL2")
+  movestep(127, 128)
+  bot("MARBGRAY")
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
-      sectortype(0,stepTag(x,y))
-      linetype(lowerfloor,cellDeadBlockerTag(x,y))
-      ibox(16,ceilingHeight,200,128,128)
+      forcesector(stepSector(x,y))
+      linetype(lowerfloor1,cellDeadBlockerTag(x,y))
+      ibox(0,0,0,128,128)
       popsector
       movestep(226,0)
     )
@@ -251,7 +257,7 @@ main {
     movestep(0,226)
   )
   ^playbox
-  movestep(0,add(mul(colCount,226),1000))
+  movestep(0,add(mul(colCount,226),500))
   !board
   forvar("y",0,sub(rowCount,1),
     bot("MARBFAC3")
@@ -291,8 +297,6 @@ riserstep(floor,tag,texture) {
 }
 checkLadderStep(x, y, nbrIx, nbrCnt) {
   if(lessthaneq(1,nbrCnt),
-    if(lessthan(nbrIx,1),die("checkLadderStep(x,y,0,c"))
-    if(lessthan(nbrCnt,1),die("checkLadderStep(x,y,i,0"))
     movestep(1,0)
     fliplinesector(20,0,checkeeOkLineTag(x,y,sub(nbrIx,1),sub(nbrCnt,1)),get("scrollingSector"))
   )
@@ -400,7 +404,7 @@ aliveCellBlock(x,y) {
   movestep(48,16)
   fliplinesector(96,0,cellAliveTag(x,y),get("scrollingSector"))
   movestep(1,0)
-  linesector(96,lowerfloor,stepTag(x,y),get("scrollingSector"))
+  linesector(96,raisefloor,stepTag(x,y),get("scrollingSector"))
   movestep(1,0)
   linesector(96,raisefloor,cellKilledBlockerTag(x,y),get("scrollingSector"))
   movestep(1,0)
@@ -562,12 +566,11 @@ fliplinesector(len,type,tag,sectorIndex) {
 }
 
 barrelStart(x,y) {
-  forcesector(get("scrollingSector"))
   movestep(10,16)
   barrel
   thing
   movestep(1,-10)
-  linesector(20,lowerfloor,stepTag(x,y),get("scrollingSector"))
+  linesector(20,raisefloor,stepTag(x,y),get("scrollingSector"))
   movestep(1,0)
   linesector(20,208,keepCellTag(x,y),get("scrollingSector"))
   movestep(8,0)
@@ -577,7 +580,6 @@ barrelStart(x,y) {
 }
 
 neighbourString(x, y, neighbIx) {
-  if(or(lessthan(neighbIx,0),lessthan(7,neighbIx)),die(neighbIx))
   ifelse(eq(neighbIx,0),
     cat2(subx1(x),suby1(y)),
     ifelse(eq(neighbIx,1),
@@ -633,7 +635,7 @@ initializeTags {
         set(cat4("cellStarted",x,y,get("nbrIx")),newtag)
         forvar("neighbCnt",0,3,
           set(cat5("check",get("x"),get("y"),get("nbrIx"),get("neighbCnt")),newtag)
-          if(lessthan(get("neighbCnt"),3),
+          if(and(lessthan(get("neighbCnt"),3),lessthan(get("nbrIx"),7)),
             set(cat5("checkOk",get("x"),get("y"),get("nbrIx"),get("neighbCnt")),newtag))
         )
       )
@@ -727,6 +729,9 @@ marbTag(x,y) {
 }
 stepTag(x,y) {
   get(cat3("step",x,y))
+}
+stepSector(x,y) {
+  get(cat3("stepSector",x,y))
 }
 stdbox(x,y) {
   box(0,ceilingHeight,200,x,y)
