@@ -4,8 +4,8 @@
 #"spawns.h"
 #"standard.h"
 
-rowCount {8}
-colCount {8}
+rowCount {9}
+colCount {9}
 ceilingHeight { add(mul(rowCount,128),300) }
 -- scrollSpeed { 45 }
 scrollSpeed { 34 }
@@ -34,60 +34,49 @@ main {
   initializeTags
   sectortype(0,0)
   !controlSectors
-  box(25,128,161,add(mul(rowCount,2),1),add(mul(colCount,40),3))
+  box(25,ceilingHeight,161,1,mul(colCount,20))
   set("raisedSector",lastsector)
-  movestep(1,1)
+  movestep(1,0)
   sectortype(0,barrelStartBlockerTag)
-  ibox(25,128,161,1,1)
+  box(25,ceilingHeight,161,1,1)
   set("barrelStartBlockerSector",lastsector)
-  popsector
-  movestep(0,2)
+  movestep(0,1)
   forvar("y",0,sub(rowCount,1),
     !row
     forvar("x",0,sub(colCount,1),
---      !cell
       sectortype(0,cellDeadBlockerTag(x,y))
-      ibox(25,128,161,1,1)
+      box(25,ceilingHeight,161,1,1)
       set(cat3("cellDeadBlockerSector",x,y),lastsector)
-      popsector
-      movestep(0,2)
+      movestep(0,1)
       sectortype(0,cellAliveBlockerTag(x,y))
-      ibox(25,128,161,1,1)
+      box(25,ceilingHeight,161,1,1)
       set(cat3("cellAliveBlockerSector",x,y),lastsector)
-      popsector
-      movestep(0,2)
+      movestep(0,1)
       sectortype(0,cellKilledBlockerTag(x,y))
-      ibox(0,128,161,1,1)
---      box(25,128,161,1,1)
+      box(0,ceilingHeight,161,1,1)
       set(cat3("cellKilledBlockerSector",x,y),lastsector)
-      popsector
-      movestep(0,2)
+      movestep(0,1)
       sectortype(0,cellRevivedBlockerTag(x,y))
-      ibox(25,128,161,1,1)
+      box(25,ceilingHeight,161,1,1)
       set(cat3("cellRevivedBlockerSector",x,y),lastsector)
-      popsector
-      movestep(0,2)
+      movestep(0,1)
       forvar("nbrIx",0,7,
         sectortype(0,cellFinishedTag(x,y,get("nbrIx")))
-        ibox(25,128,161,1,1)
+        box(25,ceilingHeight,161,1,1)
         set(cat4("cellFinishedSector",x,y,get("nbrIx")),lastsector)
-	popsector
-        movestep(0,2)
+        movestep(0,1)
         sectortype(0,cellStartedTag(x,y,get("nbrIx")))
-        ibox(25,128,161,1,1)
+        box(25,ceilingHeight,161,1,1)
         set(cat4("cellStartedSector",x,y,get("nbrIx")),lastsector)
-	popsector
-        movestep(0,2)
+        movestep(0,1)
       )
---      ^cell
---      movestep(0,40)
     )
     ^row
-    movestep(2,0)
+    movestep(1,0)
 
---    forcesector(get("raisedSector"))
---    box(0,0,0,1,add(mul(colCount,20),1))
---    movestep(1,0)
+    forcesector(get("raisedSector"))
+    box(0,0,0,1,mul(colCount,20))
+    movestep(1,0)
   )
   ^controlSectors
 
@@ -389,16 +378,19 @@ killCellBlock(x, y) {
     linesector(20,lowerfloor,cellFinishedTag(x,y,get("nbrIx")),get("scrollingSector"))
     movestep(1,0)
   )
+
   movestep(10,2)
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
-    ibox(0,0,0,1,1)
-    popsector
-    movestep(0,2)
+    box(0,0,0,1,1)
+    movestep(0,1)
   )
   ^allFinished
+  forcesector(get("scrollingSector"))
+  invbox(0,0,0,1,8)
   movestep(-9,-2)
+  
   linesector(20,raisefloor,cellDeadBlockerTag(x,y),get("scrollingSector"))
   movestep(1,0)
   linesector(20,lowerfloor,cellAliveBlockerTag(x,y),get("scrollingSector"))
@@ -426,16 +418,19 @@ reviveCellBlock(x, y) {
     linesector(20,lowerfloor,cellFinishedTag(x,y,get("nbrIx")),get("scrollingSector"))
     movestep(1,0)
   )
+
   movestep(10,2)
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
-    ibox(0,0,0,1,1)
-    popsector
-    movestep(0,2)
+    box(0,0,0,1,1)
+    movestep(0,1)
   )
   ^allFinished
+  forcesector(get("scrollingSector"))
+  invbox(0,0,0,1,8)
   movestep(-9,-2)
+
   linesector(20,raisefloor,cellAliveBlockerTag(x,y),get("scrollingSector"))
   movestep(1,0)
   linesector(20,lowerfloor,cellDeadBlockerTag(x,y),get("scrollingSector"))
@@ -463,16 +458,19 @@ keepCellBlock(x, y) {
     linesector(20,lowerfloor,cellFinishedTag(x,y,get("nbrIx")),get("scrollingSector"))
     movestep(1,0)
   )
+
   movestep(10,2)
   !allFinished
   forvar("neighbIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("neighbIx")))
-    ibox(0,0,0,1,1)
-    popsector
-    movestep(0,2)
+    box(0,0,0,1,1)
+    movestep(0,1)
   )
   ^allFinished
+  forcesector(get("scrollingSector"))
+  invbox(0,0,0,1,8)
   movestep(-9,-2)
+
   linesector(20,208,allNbrsFinishedTag(x,y),get("scrollingSector"))
   ^keepCellBlock  
   movestep(64,0)
@@ -496,16 +494,19 @@ waitAllNbrsStartedBlock(x,y) {
     linesector(20,lowerfloor,cellStartedTag(x,y,get("nbrIx")),get("scrollingSector"))
     movestep(1,0)
   )
+
   movestep(10,2)
   !allStarted
   forvar("nbrIx",0,7,
     forcesector(cellNbrStartedSector(x,y,get("nbrIx")))
-    ibox(0,0,0,1,1)
-    popsector
-    movestep(0,2)
+    box(0,0,0,1,1)
+    movestep(0,1)
   )
   ^allStarted
+  forcesector(get("scrollingSector"))
+  invbox(0,0,0,1,8)
   movestep(-9,-2)
+
   linesector(20,244,startCheckTag(x,y),get("scrollingSector"))
   ^waitAll
   movestep(64,0)
@@ -699,7 +700,7 @@ stdboxwithfrontline(x,y,type,tag) {
   linetype(type,tag) right(y)
   linetype(0,0) right(x)
   right(y)
-  rightsector(0,128,161)
+  rightsector(0,ceilingHeight,161)
   rotright
 }
 
@@ -726,6 +727,25 @@ forvar(var,from,to,body) {
     body
     inc(var,1)
   )
+}
+invbox(floor,ceil,light,x,y) {
+  right(y)
+  left(x)
+  left(y)
+  left(x)
+  turnaround
+  rightsector(floor,ceil,light)
+}
+partialibox(floor,ceil,light,x,y) {
+  right(y)
+  left(x)
+  left(y)
+  innerleftsector(floor,ceil,light)
+  up
+  left(x)
+  down
+  turnaround
+  
 }
 neg(n) {
   sub(0,n)
