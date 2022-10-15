@@ -14,6 +14,8 @@ barrel { setthing(2035) }
 raisefloor { 24617 }
 lowerfloor { 24809 }
 lowerfloor1 { 24808 }
+lineteleport { 267 }
+thingteleport { 269 }
 
 main {
   turnaround
@@ -305,7 +307,7 @@ checkLadderStep(x, y, nbrIx, nbrCnt) {
     lineleft(20,0,checkeeOkLineTag(x,y,sub(nbrIx,1),sub(nbrCnt,1)))
   )
   movestep(1,0)
-  lineright(20,267,checkeeLineTag(x,y,nbrIx,nbrCnt))
+  lineright(20,lineteleport,checkeeLineTag(x,y,nbrIx,nbrCnt))
 }
 
 checkLadderForCell(x, y) {
@@ -319,25 +321,25 @@ checkLadderForCell(x, y) {
     checkLadderStep(x, y, i, 0)
   )
   movestep(1,0)
-  lineright(20,269,killCellTag(x,y))
+  lineright(20,thingteleport,killCellTag(x,y))
 
   fori(1,7,
     checkLadderStep(x, y, i, 1)
   )
   movestep(1,0)
-  lineright(20,269,killCellTag(x,y))
+  lineright(20,thingteleport,killCellTag(x,y))
 
   fori(2,7,
     checkLadderStep(x, y, i, 2)
   )
   movestep(1,0)
-  lineright(20,269,keepCellTag(x,y))
+  lineright(20,thingteleport,keepCellTag(x,y))
 
   fori(3,7,
     checkLadderStep(x, y, i, 3)
   )
   movestep(1,0)
-  lineright(20,269,reviveCellTag(x,y))
+  lineright(20,thingteleport,reviveCellTag(x,y))
 }
 
 checkerForCell(x, y) {
@@ -351,27 +353,27 @@ checkerForCell(x, y) {
       lineleft(2,0,checkerLineTag(x,y,get("nbrIx"),0))
       movestep(1,0)
       ifelse(eq(get("nbrIx"),7),
-        lineright(2,269,get(cat2("killCell",invNeighbourString(x,y,get("nbrIx"))))),
-        lineright(2,267,checkerOkLineTag(x,y,get("nbrIx"),0))
+        lineright(2,thingteleport,get(cat2("killCell",invNeighbourString(x,y,get("nbrIx"))))),
+        lineright(2,lineteleport,checkerOkLineTag(x,y,get("nbrIx"),0))
       )
       movestep(1,0)
       lineleft(2,0,checkerLineTag(x,y,get("nbrIx"),1))
       movestep(1,0)
       ifelse(eq(get("nbrIx"),7),
-        lineright(2,269,get(cat2("keepCell",invNeighbourString(x,y,get("nbrIx"))))),
-        lineright(2,267,checkerOkLineTag(x,y,get("nbrIx"),1))
+        lineright(2,thingteleport,get(cat2("keepCell",invNeighbourString(x,y,get("nbrIx"))))),
+        lineright(2,lineteleport,checkerOkLineTag(x,y,get("nbrIx"),1))
       )
       movestep(1,0)
       lineleft(2,0,checkerLineTag(x,y,get("nbrIx"),2))
       movestep(1,0)
       ifelse(eq(get("nbrIx"),7),
-        lineright(2,269,get(cat2("reviveCell",invNeighbourString(x,y,get("nbrIx"))))),
-        lineright(2,267,checkerOkLineTag(x,y,get("nbrIx"),2))
+        lineright(2,thingteleport,get(cat2("reviveCell",invNeighbourString(x,y,get("nbrIx"))))),
+        lineright(2,lineteleport,checkerOkLineTag(x,y,get("nbrIx"),2))
       )
       movestep(1,0)
       lineleft(2,0,checkerLineTag(x,y,get("nbrIx"),3))
       movestep(1,0)
-      lineright(2,269,get(cat2("killCell",invNeighbourString(x,y,get("nbrIx")))))
+      lineright(2,thingteleport,get(cat2("killCell",invNeighbourString(x,y,get("nbrIx")))))
       movestep(11,0)
       inc("nbrIx",1)
     )
@@ -393,7 +395,7 @@ checkerForCell(x, y) {
   movestep(2,0)
   lineright(20,raisefloor,cellAliveBlockerTag(x,y))
   movestep(1,0)
-  lineright(20,267,cellAliveTag(x,y))
+  lineright(20,lineteleport,cellAliveTag(x,y))
   movestep(46,0)
   forcesector(cellDeadBlockerSector(x,y))
   ibox(0,0,0,1,20)
@@ -415,7 +417,7 @@ aliveCellBlock(x,y) {
   movestep(2,0)
   lineright(96,raisefloor,cellDeadBlockerTag(x,y))
   movestep(1,0)
-  lineright(96,267,cellDeadTag(x,y))
+  lineright(96,lineteleport,cellDeadTag(x,y))
   movestep(46,0)
   forcesector(cellAliveBlockerSector(x,y))
   ibox(0,0,0,1,96)
@@ -455,7 +457,7 @@ killCellBlock(x, y) {
   ibox(0,0,0,1,20)
   popsector
   movestep(-9,0)
-  lineright(20,269,allNbrsFinishedTag(x,y))
+  lineright(20,thingteleport,allNbrsFinishedTag(x,y))
 }
 reviveCellBlock(x, y) {
   movestep(9,6)
@@ -490,7 +492,7 @@ reviveCellBlock(x, y) {
   ibox(0,0,0,1,20)
   popsector
   movestep(-9,0)
-  lineright(20,269,allNbrsFinishedTag(x,y))
+  lineright(20,thingteleport,allNbrsFinishedTag(x,y))
 }
 keepCellBlock(x, y) {
   movestep(9,6)
@@ -517,7 +519,7 @@ keepCellBlock(x, y) {
   invbox(0,0,0,1,8)
   movestep(-9,-2)
 
-  lineright(20,269,allNbrsFinishedTag(x,y))
+  lineright(20,thingteleport,allNbrsFinishedTag(x,y))
 }
 waitAllNbrsStartedBlock(x,y) {
   movestep(9,6)
@@ -548,7 +550,7 @@ waitAllNbrsStartedBlock(x,y) {
   invbox(0,0,0,1,8)
   movestep(-9,-2)
 
-  lineright(20,267,startCheckTag(x,y))
+  lineright(20,lineteleport,startCheckTag(x,y))
 }
 
 lineright(len,type,tag) {
@@ -573,7 +575,7 @@ barrelStart(x,y) {
   movestep(1,-10)
   lineright(20,raisefloor,stepTag(x,y))
   movestep(1,0)
-  lineright(20,269,keepCellTag(x,y))
+  lineright(20,thingteleport,keepCellTag(x,y))
   movestep(8,0)
   forcesector(get("barrelStartBlockerSector"))
   ibox(0,0,0,1,20)
