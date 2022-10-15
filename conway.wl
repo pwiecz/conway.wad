@@ -136,6 +136,21 @@ main {
   ^keepCells
   movestep(mul(64,rowCount),0)
 
+  !waitNbrsCommitted
+  forvar("x",0,sub(colCount,1),
+    !column
+    forvar("y",0,sub(rowCount,1),
+      !cell
+      waitAllNbrsCommittedBlock(x,y)
+      ^cell
+      movestep(32,0)
+    )
+    ^column
+    movestep(0,32)
+  )
+  ^waitNbrsCommitted
+  movestep(mul(32,rowCount),0)
+
   !waitNbrsStarted
   forvar("x",0,sub(colCount,1),
     !column
@@ -143,13 +158,13 @@ main {
       !cell
       waitAllNbrsStartedBlock(x,y)
       ^cell
-      movestep(64,0)
+      movestep(32,0)
     )
     ^column
     movestep(0,32)
   )
   ^waitNbrsStarted
-  movestep(mul(64,rowCount),0)
+  movestep(mul(32,rowCount),0)
 
   !barrels
   forcesector(get("scrollingSector"))
@@ -251,7 +266,7 @@ riserstep(floor,tag,texture) {
 }
 controlSector() {
   sectortype(0,0)
-  box(25,ceilingHeight,200,1,add(mul(colCount,21),1))
+  box(25,ceilingHeight,200,1,add(mul(colCount,8),1))
   set("raisedSector",lastsector)
   movestep(1,0)
   sectortype(0,barrelStartBlockerTag)
@@ -281,22 +296,24 @@ controlSector() {
       box(13,ceilingHeight,200,1,1)
       set(cat3("stepSector",x,y),lastsector)
       movestep(0,1)
-      forvar("nbrIx",0,7,
-        sectortype(0,cellFinishedTag(x,y,get("nbrIx")))
-        box(25,ceilingHeight,200,1,1)
-        set(cat4("cellFinishedSector",x,y,get("nbrIx")),lastsector)
-        movestep(0,1)
-        sectortype(0,cellStartedTag(x,y,get("nbrIx")))
-        box(25,ceilingHeight,200,1,1)
-        set(cat4("cellStartedSector",x,y,get("nbrIx")),lastsector)
-        movestep(0,1)
-      )
+      sectortype(0,cellFinishedTag(x,y))
+      box(25,ceilingHeight,200,1,1)
+      set(cat3("cellFinishedSector",x,y),lastsector)
+      movestep(0,1)
+      sectortype(0,cellCommittedTag(x,y))
+      box(25,ceilingHeight,200,1,1)
+      set(cat3("cellCommittedSector",x,y),lastsector)
+      movestep(0,1)
+      sectortype(0,cellStartedTag(x,y))
+      box(25,ceilingHeight,200,1,1)
+      set(cat3("cellStartedSector",x,y),lastsector)
+      movestep(0,1)
     )
     ^row
     movestep(1,0)
 
     forcesector(get("raisedSector"))
-    box(0,0,0,1,mul(colCount,21))
+    box(0,0,0,1,mul(colCount,8))
     movestep(1,0)
   )
 }
@@ -313,10 +330,6 @@ checkLadderStep(x, y, nbrIx, nbrCnt) {
 checkLadderForCell(x, y) {
   movestep(10,6)
   lineleft(20,0,startCheckTag(x,y))
-  forvar("nbrIx",0,7,
-    movestep(1,0)
-    lineright(20,raisefloor,cellNbrStartedTag(x,y,get("nbrIx")))
-  )
   fori(0, 6,
     checkLadderStep(x, y, i, 0)
   )
@@ -427,17 +440,13 @@ aliveCellBlock(x,y) {
 killCellBlock(x, y) {
   movestep(9,6)
   sectortype(0,killCellTag(x,y))
-  stdiboxwithfrontline(2,20,lowerfloor,cellFinishedTag(x,y,0))
+  stdiboxwithfrontline(2,20,raisefloor,cellCommittedTag(x,y))
   movestep(1,10)
   teleportlanding
   thingangle(rotatedAngle(angle_north))
   movestep(2,-10)
-  forvar("nbrIx",1,7,
-    lineright(20,lowerfloor,cellFinishedTag(x,y,get("nbrIx")))
-    movestep(1,0)
-  )
-
-  movestep(10,2)
+  lineright(20,lowerfloor,cellFinishedTag(x,y))
+  movestep(11,2)
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
@@ -448,7 +457,6 @@ killCellBlock(x, y) {
   forcesector(get("scrollingSector"))
   invbox(0,0,0,1,8)
   movestep(-9,-2)
-  
   lineright(20,raisefloor,cellDeadBlockerTag(x,y))
   movestep(1,0)
   lineright(20,lowerfloor,cellAliveBlockerTag(x,y))
@@ -462,17 +470,13 @@ killCellBlock(x, y) {
 reviveCellBlock(x, y) {
   movestep(9,6)
   sectortype(0,reviveCellTag(x,y))
-  stdiboxwithfrontline(2,20,lowerfloor,cellFinishedTag(x,y,0))
+  stdiboxwithfrontline(2,20,raisefloor,cellCommittedTag(x,y))
   movestep(1,10)
   teleportlanding
   thingangle(rotatedAngle(angle_north))
   movestep(2,-10)
-  forvar("nbrIx",1,7,
-    lineright(20,lowerfloor,cellFinishedTag(x,y,get("nbrIx")))
-    movestep(1,0)
-  )
-
-  movestep(10,2)
+  lineright(20,lowerfloor,cellFinishedTag(x,y))
+  movestep(11,2)
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
@@ -483,7 +487,6 @@ reviveCellBlock(x, y) {
   forcesector(get("scrollingSector"))
   invbox(0,0,0,1,8)
   movestep(-9,-2)
-
   lineright(20,raisefloor,cellAliveBlockerTag(x,y))
   movestep(1,0)
   lineright(20,lowerfloor,cellDeadBlockerTag(x,y))
@@ -497,17 +500,11 @@ reviveCellBlock(x, y) {
 keepCellBlock(x, y) {
   movestep(9,6)
   sectortype(0,keepCellTag(x,y))
-  stdiboxwithfrontline(2,20,lowerfloor,cellFinishedTag(x,y,0))
+  stdiboxwithfrontline(2,20,lowerfloor,cellFinishedTag(x,y))
   movestep(1,10)
   teleportlanding
   thingangle(rotatedAngle(angle_north))
-  movestep(2,-10)
-  forvar("nbrIx",1,7,
-    lineright(20,lowerfloor,cellFinishedTag(x,y,get("nbrIx")))
-    movestep(1,0)
-  )
-
-  movestep(10,2)
+  movestep(12,-8)
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
@@ -521,24 +518,38 @@ keepCellBlock(x, y) {
 
   lineright(20,thingteleport,allNbrsFinishedTag(x,y))
 }
-waitAllNbrsStartedBlock(x,y) {
+waitAllNbrsCommittedBlock(x,y) {
   movestep(9,6)
   sectortype(0,allNbrsFinishedTag(x,y))
-  stdiboxwithfrontline(2,20,raisefloor,cellNbrFinishedTag(x,y,0))
+  stdiboxwithfrontline(2,20,raisefloor,cellStartedTag(x,y))
   movestep(1,10)
   teleportlanding
   thingangle(rotatedAngle(angle_north))
   movestep(2,-10)  
-  lineright(20,lowerfloor,cellStartedTag(x,y,0))
-  movestep(1,0)
-  forvar("nbrIx",1,7,
-    lineright(20,raisefloor,cellNbrFinishedTag(x,y,get("nbrIx")))
-    movestep(1,0)
-    lineright(20,lowerfloor,cellStartedTag(x,y,get("nbrIx")))
-    movestep(1,0)
+  lineright(20,lowerfloor,cellCommittedTag(x,y))
+  movestep(11,2)
+  !allCommitted
+  forvar("nbrIx",0,7,
+    forcesector(cellNbrCommittedSector(x,y,get("nbrIx")))
+    box(0,0,0,1,1)
+    movestep(0,1)
   )
+  ^allCommitted
+  forcesector(get("scrollingSector"))
+  invbox(0,0,0,1,8)
+  movestep(-9,-2)
 
-  movestep(10,2)
+  lineright(20,lineteleport,allNbrsCommittedTag(x,y))
+}
+
+waitAllNbrsStartedBlock(x,y) {
+  movestep(10, 6)
+  lineleft(20,0,allNbrsCommittedTag(x,y))
+  movestep(1,0)
+  lineright(20,raisefloor,cellFinishedTag(x,y))
+  movestep(1,0)
+  lineright(20,lowerfloor,cellStartedTag(x,y))
+  movestep(11,2)
   !allStarted
   forvar("nbrIx",0,7,
     forcesector(cellNbrStartedSector(x,y,get("nbrIx")))
@@ -628,14 +639,16 @@ initializeTags {
       set(cat3("cellAlive",x,y),newtag)
       set(cat3("cellAliveBlocker",x,y),newtag)
       set(cat3("cellRevivedBlocker",x,y),newtag)
+      set(cat3("cellFinished",x,y),newtag)
+      set(cat3("cellStarted",x,y),newtag)
+      set(cat3("cellCommitted",x,y),newtag)
       set(cat3("startNextTurn",x,y),newtag)
       set(cat3("startCheck",x,y),newtag)
       set(cat3("allNbrsFinished",x,y),newtag)
+      set(cat3("allNbrsCommitted",x,y),newtag)
       set(cat3("marb",x,y),newtag)
       set(cat3("step",x,y),newtag)
       forvar("nbrIx",0,7,
-        set(cat4("cellFinished",x,y,get("nbrIx")),newtag)
-        set(cat4("cellStarted",x,y,get("nbrIx")),newtag)
         forvar("nbrCount",0,3,
           set(cat5("check",get("x"),get("y"),get("nbrIx"),get("nbrCount")),newtag)
           if(and(lessthan(get("nbrCount"),3),lessthan(get("nbrIx"),7)),
@@ -697,23 +710,26 @@ startCheckTag(x,y) {
 allNbrsFinishedTag(x,y) {
   get(cat3("allNbrsFinished",x,y))
 }
-cellFinishedTag(x,y,nbrIx) {
-  get(cat4("cellFinished",x,y,nbrIx))
+allNbrsCommittedTag(x,y) {
+  get(cat3("allNbrsCommitted",x,y))
 }
-cellNbrFinishedTag(x,y,nbrIx) {
-  get(cat3("cellFinished",neighbourString(x,y,nbrIx),nbrIx))
+cellFinishedTag(x,y) {
+  get(cat3("cellFinished",x,y))
 }
-cellStartedTag(x,y,nbrIx) {
-  get(cat4("cellStarted",x,y,nbrIx))
+cellCommittedTag(x,y) {
+  get(cat3("cellCommitted",x,y))
 }
-cellNbrStartedTag(x,y,nbrIx) {
-  get(cat3("cellStarted",neighbourString(x,y,nbrIx),nbrIx))
+cellStartedTag(x,y) {
+  get(cat3("cellStarted",x,y))
 }
 cellNbrFinishedSector(x,y,nbrIx) {
-  get(cat3("cellFinishedSector",neighbourString(x,y,nbrIx),nbrIx))
+  get(cat2("cellFinishedSector",neighbourString(x,y,nbrIx)))
+}
+cellNbrCommittedSector(x,y,nbrIx) {
+  get(cat2("cellCommittedSector",neighbourString(x,y,nbrIx)))
 }
 cellNbrStartedSector(x,y,nbrIx) {
-  get(cat3("cellStartedSector",neighbourString(x,y,nbrIx),nbrIx))
+  get(cat2("cellStartedSector",neighbourString(x,y,nbrIx)))
 }
 cellAliveBlockerSector(x,y) {
   get(cat3("cellAliveBlockerSector",x,y))
@@ -790,4 +806,5 @@ rotatedAngle(angle) {
       ifelse(eq(getorient,2),
         mod(add(angle,180),360),
 	mod(add(angle,90),360))))
+
 }
