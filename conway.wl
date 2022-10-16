@@ -4,8 +4,8 @@
 #"spawns.h"
 #"standard.h"
 
-rowCount {9}
-colCount {9}
+rowCount {12}
+colCount {12}
 ceilingHeight { add(mul(rowCount,128),300) }
 -- scrollSpeed { 34 } -- max speed that works reliably in PrBoom+
 -- scrollSpeed { 32 } -- max speed that works reliably in GzDoom
@@ -19,7 +19,8 @@ thingteleport { 269 }
 
 main {
   turnaround
-  undefx
+  xoff(0)
+  yoff(0)
   mid("GRAY1")
   !origin
   movestep(mul(128,rowCount),0)
@@ -128,13 +129,13 @@ main {
       !cell
       keepCellBlock(x,y)
       ^cell
-      movestep(64,0)
+      movestep(32,0)
     )
     ^column
     movestep(0,32)
   )
   ^keepCells
-  movestep(mul(64,rowCount),0)
+  movestep(mul(32,rowCount),0)
 
   !waitNbrsCommitted
   forvar("x",0,sub(colCount,1),
@@ -167,8 +168,6 @@ main {
   movestep(mul(32,rowCount),0)
 
   !barrels
-  forcesector(get("scrollingSector"))
-  box(0,0,0,mul(32,rowCount),mul(32,colCount))
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
@@ -181,8 +180,8 @@ main {
     movestep(0,32)
   )
   ^barrels
-  movestep(mul(-128,rowCount),mul(32,colCount))
-  
+  movestep(mul(-96,rowCount),mul(32,colCount))
+
   sectortype(0,0)
   stdbox(add(mul(rowCount,226),128),add(mul(colCount,226),500))
   !playbox
@@ -209,7 +208,6 @@ main {
   turnaround
   popsector
   yoff(0)
-  undefx
 
   movestep(127, 128)
   bot("MARBGRAY")
@@ -227,6 +225,7 @@ main {
   )
   ^playbox
   movestep(0,add(mul(colCount,226),500))
+  xoff(0)
   !board
   forvar("y",0,sub(rowCount,1),
     bot("MARBFAC3")
@@ -251,6 +250,7 @@ main {
   movestep(0,1)
   stdbox(mul(128,colCount),128)
 }
+
 riserstep(floor,tag,texture) {
   bot(texture)
   straight(128)
@@ -264,6 +264,7 @@ riserstep(floor,tag,texture) {
   rightsector(floor,ceilingHeight,200)
   rotright
 }
+
 controlSector() {
   sectortype(0,0)
   box(25,ceilingHeight,200,1,add(mul(colCount,8),1))
@@ -450,11 +451,13 @@ killCellBlock(x, y) {
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
+    xoff(get("nbrIx"))
     box(0,0,0,1,1)
     movestep(0,1)
   )
   ^allFinished
   forcesector(get("scrollingSector"))
+  xoff(0)
   invbox(0,0,0,1,8)
   movestep(-9,-2)
   lineright(20,raisefloor,cellDeadBlockerTag(x,y))
@@ -480,12 +483,14 @@ reviveCellBlock(x, y) {
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
+    xoff(get("nbrIx"))
     box(0,0,0,1,1)
     movestep(0,1)
   )
   ^allFinished
   forcesector(get("scrollingSector"))
   invbox(0,0,0,1,8)
+  xoff(0)
   movestep(-9,-2)
   lineright(20,raisefloor,cellAliveBlockerTag(x,y))
   movestep(1,0)
@@ -508,12 +513,14 @@ keepCellBlock(x, y) {
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
+    xoff(get("nbrIx"))
     box(0,0,0,1,1)
     movestep(0,1)
   )
   ^allFinished
   forcesector(get("scrollingSector"))
   invbox(0,0,0,1,8)
+  xoff(0)
   movestep(-9,-2)
 
   lineright(20,thingteleport,allNbrsFinishedTag(x,y))
@@ -531,12 +538,14 @@ waitAllNbrsCommittedBlock(x,y) {
   !allCommitted
   forvar("nbrIx",0,7,
     forcesector(cellNbrCommittedSector(x,y,get("nbrIx")))
+    xoff(get("nbrIx"))
     box(0,0,0,1,1)
     movestep(0,1)
   )
   ^allCommitted
   forcesector(get("scrollingSector"))
   invbox(0,0,0,1,8)
+  xoff(0)
   movestep(-9,-2)
 
   lineright(20,lineteleport,allNbrsCommittedTag(x,y))
@@ -553,12 +562,14 @@ waitAllNbrsStartedBlock(x,y) {
   !allStarted
   forvar("nbrIx",0,7,
     forcesector(cellNbrStartedSector(x,y,get("nbrIx")))
+    xoff(get("nbrIx"))
     box(0,0,0,1,1)
     movestep(0,1)
   )
   ^allStarted
   forcesector(get("scrollingSector"))
   invbox(0,0,0,1,8)
+  xoff(0)
   movestep(-9,-2)
 
   lineright(20,lineteleport,startCheckTag(x,y))
