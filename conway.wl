@@ -4,8 +4,8 @@
 #"spawns.h"
 #"standard.h"
 
-rowCount {12}
-colCount {12}
+rowCount {13}
+colCount {13}
 ceilingHeight { add(mul(rowCount,128),300) }
 -- scrollSpeed { 34 } -- max speed that works reliably in PrBoom+
 -- scrollSpeed { 32 } -- max speed that works reliably in GzDoom
@@ -42,11 +42,11 @@ main {
 
   forcesector(get("scrollingSector"))
   straight(mul(128,rowCount))
-  right(mul(352,colCount))
+  right(mul(320,colCount))
   impassable
   right(mul(128,rowCount))
   impassable
-  right(mul(352,colCount))
+  right(mul(320,colCount))
   rightsector(0,ceilingHeight,200)
   rotright
 
@@ -92,49 +92,20 @@ main {
   )
   ^ladders
   movestep(0,mul(32,colCount))
-  !killCells
-  forvar("x",0,sub(colCount,1),
-    !column
-    forvar("y",0,sub(rowCount,1),
-      !cell
-      killCellBlock(x,y)
-      ^cell
-      movestep(64,0)
-    )
-    ^column
-    movestep(0,32)
-  )
-  ^killCells
-  movestep(mul(64,rowCount),0)
 
-  !reviveCells
+  !cellsFinished
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
       !cell
-      reviveCellBlock(x,y)
-      ^cell
-      movestep(64,0)
-    )
-    ^column
-    movestep(0,32)
-  )
-  ^reviveCells
-  movestep(mul(-64,rowCount),mul(32,colCount))
-
-  !keepCells
-  forvar("x",0,sub(colCount,1),
-    !column
-    forvar("y",0,sub(rowCount,1),
-      !cell
-      keepCellBlock(x,y)
+      cellFinishedBlock(x,y)
       ^cell
       movestep(32,0)
     )
     ^column
     movestep(0,32)
   )
-  ^keepCells
+  ^cellsFinished
   movestep(mul(32,rowCount),0)
 
   !waitNbrsCommitted
@@ -438,16 +409,29 @@ aliveCellBlock(x,y) {
   popsector
 }
 
-killCellBlock(x, y) {
-  movestep(9,6)
+cellFinishedBlock(x, y) {
+  movestep(9,10)
   sectortype(0,killCellTag(x,y))
-  stdiboxwithfrontline(2,20,raisefloor,cellCommittedTag(x,y))
-  movestep(1,10)
+  stdboxwithfrontline(2,2,raisefloor,cellCommittedTag(x,y))
+  movestep(1,1)
   teleportlanding
   thingangle(rotatedAngle(angle_north))
-  movestep(2,-10)
-  lineright(20,lowerfloor,cellFinishedTag(x,y))
-  movestep(11,2)
+  movestep(-1,1)
+  sectortype(0,keepCellTag(x,y))
+  stdboxwithfrontline(2,8,lowerfloor,cellFinishedTag(x,y))
+  movestep(1,4)
+  teleportlanding
+  thingangle(rotatedAngle(angle_north))
+  movestep(-1,4)
+  sectortype(0,reviveCellTag(x,y))
+  stdboxwithfrontline(2,2,raisefloor,cellCommittedTag(x,y))
+  movestep(1,1)
+  teleportlanding
+  thingangle(rotatedAngle(angle_north))
+  movestep(-1,-11)
+  forcesector(get("scrollingSector"))
+  invbox(0,0,0,2,12)
+  movestep(13,2)
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
@@ -457,72 +441,26 @@ killCellBlock(x, y) {
   )
   ^allFinished
   forcesector(get("scrollingSector"))
-  xoff(0)
   invbox(0,0,0,1,8)
-  movestep(-9,-2)
-  lineright(20,raisefloor,cellDeadBlockerTag(x,y))
+  xoff(0)
+  movestep(-9,-11)
+  
+  lineright(2,raisefloor,cellDeadBlockerTag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloor,cellAliveBlockerTag(x,y))
+  lineright(2,lowerfloor,cellAliveBlockerTag(x,y))
   movestep(11,0)
   forcesector(cellKilledBlockerSector(x,y))
-  ibox(0,0,0,1,20)
+  ibox(0,0,0,1,2)
   popsector
-  movestep(-9,0)
-  lineright(20,thingteleport,allNbrsFinishedTag(x,y))
-}
-reviveCellBlock(x, y) {
-  movestep(9,6)
-  sectortype(0,reviveCellTag(x,y))
-  stdiboxwithfrontline(2,20,raisefloor,cellCommittedTag(x,y))
-  movestep(1,10)
-  teleportlanding
-  thingangle(rotatedAngle(angle_north))
-  movestep(2,-10)
-  lineright(20,lowerfloor,cellFinishedTag(x,y))
-  movestep(11,2)
-  !allFinished
-  forvar("nbrIx",0,7,
-    forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
-    xoff(get("nbrIx"))
-    box(0,0,0,1,1)
-    movestep(0,1)
-  )
-  ^allFinished
-  forcesector(get("scrollingSector"))
-  invbox(0,0,0,1,8)
-  xoff(0)
-  movestep(-9,-2)
-  lineright(20,raisefloor,cellAliveBlockerTag(x,y))
+  movestep(-12,28)
+  lineright(2,raisefloor,cellAliveBlockerTag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloor,cellDeadBlockerTag(x,y))
+  lineright(2,lowerfloor,cellDeadBlockerTag(x,y))
   movestep(11,0)
   forcesector(cellRevivedBlockerSector(x,y))
-  ibox(0,0,0,1,20)
+  ibox(0,0,0,1,2)
   popsector
-  movestep(-9,0)
-  lineright(20,thingteleport,allNbrsFinishedTag(x,y))
-}
-keepCellBlock(x, y) {
-  movestep(9,6)
-  sectortype(0,keepCellTag(x,y))
-  stdiboxwithfrontline(2,20,lowerfloor,cellFinishedTag(x,y))
-  movestep(1,10)
-  teleportlanding
-  thingangle(rotatedAngle(angle_north))
-  movestep(12,-8)
-  !allFinished
-  forvar("nbrIx",0,7,
-    forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
-    xoff(get("nbrIx"))
-    box(0,0,0,1,1)
-    movestep(0,1)
-  )
-  ^allFinished
-  forcesector(get("scrollingSector"))
-  invbox(0,0,0,1,8)
-  xoff(0)
-  movestep(-9,-2)
-
+  movestep(-9,-23)
   lineright(20,thingteleport,allNbrsFinishedTag(x,y))
 }
 waitAllNbrsCommittedBlock(x,y) {
@@ -772,6 +710,14 @@ stdiboxwithfrontline(x,y,type,tag) {
   linetype(0,0) right(x)
   right(y)
   innerrightsector(0,ceilingHeight,200)
+  rotright
+}
+stdboxwithfrontline(x,y,type,tag) {
+  linetype(0,0) straight(x)
+  linetype(type,tag) right(y)
+  linetype(0,0) right(x)
+  right(y)
+  rightsector(0,ceilingHeight,200)
   rotright
 }
 
