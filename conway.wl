@@ -21,6 +21,7 @@ main {
   turnaround
   xoff(0)
   yoff(0)
+  top("-")
   mid("GRAY1")
   !origin
   movestep(mul(128,rowCount),0)
@@ -43,13 +44,16 @@ main {
   forcesector(get("scrollingSector"))
   straight(mul(128,rowCount))
   right(mul(320,colCount))
+  mid("-")
   impassable
   right(mul(128,rowCount))
   impassable
+  mid("GRAY1")
   right(mul(320,colCount))
   rightsector(0,ceilingHeight,200)
   rotright
 
+  mid("-")
   !checkers
   forvar("x",0,sub(colCount,1),
     !column
@@ -154,7 +158,18 @@ main {
   movestep(mul(-96,rowCount),mul(32,colCount))
 
   sectortype(0,0)
-  stdbox(add(mul(rowCount,226),128),add(mul(colCount,226),500))
+  mid("GRAY1")
+  right(add(mul(colCount,226),500))
+  mid("-")
+  left(mul(rowCount,128))
+  mid("GRAY1")
+  straight(add(mul(rowCount,98),128))
+  left(add(mul(colCount,226),500))
+  left(add(mul(rowCount,162),128))
+  mid("-")
+  straight(mul(rowCount,64))
+  leftsector(0,ceilingHeight,200)
+  turnaround
   !playbox
   movestep(32, 17)
 
@@ -163,6 +178,7 @@ main {
 
   ^playbox
 
+  mid("-")
   yoff(32)
   movestep(1, 32)
   bot("BROWN96")
@@ -195,41 +211,81 @@ main {
     movestep(0,226)
   )
   ^playbox
+  mid("GRAY1")
+
   movestep(0,add(mul(colCount,226),500))
   xoff(0)
   !board
+  mid("-")
   forvar("y",0,sub(rowCount,1),
     bot("MARBFAC3")
-    box(0,ceilingHeight,200,128,4)
+    riserstep(y,0,0,"MARBFAC3")
     movestep(128,0)
   )
   ^board
   movestep(0,4)
+  undefx
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
-      riserstep(mul(x,128),marbTag(x,y),"BIGDOOR7")
+      riserstep(y,mul(x,128),marbTag(x,y),"BIGDOOR7")
       movestep(0,4)
-      riserstep(mul(add(x,1),128),0,"MARBFAC3")
+      riserstep(y,mul(add(x,1),128),0,"MARBFAC3")
       movestep(128,-4)
     )
     ^column
     movestep(0,8)
   )
   linetype(exit_w1_normal,0)
-  stdbox(mul(128,colCount),1)
-  movestep(0,1)
-  stdbox(mul(128,colCount),128)
+  mid("-")
+  straight(mul(128,colCount))
+  mid("GRAY1")
+  right(32)
+  mid("-")
+  right(mul(128,colCount))
+  mid("GRAY1")
+  right(32)
+  rightsector(mul(128,colCount),ceilingHeight,200)
+  rotright
+  movestep(0,32)
+  floor("F_SKY1")
+  for(0,8,
+    mid("-")
+    straight(mul(128,colCount))
+    mid("GRAY1")
+    right(1)
+    mid("-")
+    right(mul(128,colCount))
+    mid("GRAY1")
+    right(1)
+    rightsector(sub(mul(colCount,128),16),ceilingHeight,200)
+    rotright
+--    box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),1)
+    movestep(0,1)
+  )
+  mid("-")
+  straight(mul(128,colCount))
+  mid("GRAY1")
+  right(120)
+  right(mul(128,colCount))
+  right(120)
+  rightsector(sub(mul(colCount,128),16),ceilingHeight,200)
+  rotright
+--  box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),120)
 }
 
-riserstep(floor,tag,texture) {
+riserstep(y,floor,tag,texture) {
+  mid("-")
   bot(texture)
   straight(128)
   bot("DOORTRAK")
+  if(eq(y,sub(rowCount,1)),mid("GRAY1"))
   right(4)
   bot(texture)
+  mid("-")
   right(128)
   bot("DOORTRAK")
+  if(eq(y,0),mid("GRAY1"))
   right(4)
   sectortype(0,tag)
   rightsector(floor,ceilingHeight,200)
@@ -472,7 +528,7 @@ waitAllNbrsCommittedBlock(x,y) {
   thingangle(rotatedAngle(angle_north))
   movestep(2,-10)  
   lineright(20,lowerfloor,cellCommittedTag(x,y))
-  movestep(11,2)
+  movestep(11,6)
   !allCommitted
   forvar("nbrIx",0,7,
     forcesector(cellNbrCommittedSector(x,y,get("nbrIx")))
@@ -484,7 +540,7 @@ waitAllNbrsCommittedBlock(x,y) {
   forcesector(get("scrollingSector"))
   invbox(0,0,0,1,8)
   xoff(0)
-  movestep(-9,-2)
+  movestep(-9,-6)
 
   lineright(20,lineteleport,allNbrsCommittedTag(x,y))
 }
@@ -496,7 +552,7 @@ waitAllNbrsStartedBlock(x,y) {
   lineright(20,raisefloor,cellFinishedTag(x,y))
   movestep(1,0)
   lineright(20,lowerfloor,cellStartedTag(x,y))
-  movestep(11,2)
+  movestep(11,6)
   !allStarted
   forvar("nbrIx",0,7,
     forcesector(cellNbrStartedSector(x,y,get("nbrIx")))
@@ -508,7 +564,7 @@ waitAllNbrsStartedBlock(x,y) {
   forcesector(get("scrollingSector"))
   invbox(0,0,0,1,8)
   xoff(0)
-  movestep(-9,-2)
+  movestep(-9,-6)
 
   lineright(20,lineteleport,startCheckTag(x,y))
 }
