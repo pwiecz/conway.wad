@@ -213,6 +213,7 @@ main {
   ^playbox
   mid("GRAY1")
 
+  linetype(0,0)
   movestep(0,add(mul(colCount,226),500))
   xoff(0)
   !board
