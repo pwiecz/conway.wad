@@ -1,4 +1,8 @@
+defaultmap {
+    compat_boomscroll = 1
+}
+
 map MAP01 "Square of Life"
 {
-compat_boomscroll = 1
+    next = "ENDGAMEC"
 }

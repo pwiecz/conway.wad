@@ -1,0 +1,9 @@
+Patch File for DeHackEd v3.0
+
+Doom version = 21
+Patch format = 6
+
+
+Thing 9 (Mancubus - don't count it towards the kill count)
+Bits = SOLID+SHOOTABLE
+
