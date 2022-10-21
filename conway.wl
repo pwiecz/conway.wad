@@ -569,19 +569,30 @@ waitAllNbrsStartedBlock(x,y) {
   lineright(20,lineteleport,startCheckTag(x,y))
 }
 
+/* Use empty textures for disconnected linedefs, so that ZokumBSP can recognize those
+   linedefs as invisible and ignore them in bsp calculations */
 lineright(len,type,tag) {
+  !line_start_position
+  bot("-")
+  mid("-")
+  top("-")
   forcesector(get("scrollingSector"))
   linetype(type,tag) step(0,len)
   linetype(0,0) step(0,neg(len))
   rightsector(0,0,0)
+  ^line_start_position
 }
 lineleft(len,type,tag) {
+  !line_start_position
+  bot("-")
+  mid("-")
+  top("-")
   forcesector(get("scrollingSector"))
   movestep(0,len)
   linetype(type,tag) step(0,neg(len))
   linetype(0,0) step(0,len)
-  movestep(0,neg(len))
   rightsector(0,0,0)
+  ^line_start_position
 }
 
 barrelStart(x,y) {
