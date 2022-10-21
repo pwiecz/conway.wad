@@ -1,5 +1,7 @@
 MAP MAP01
 {
    levelname = "Square of Life"
-   endgame = true
+   endcast = true
+   skytexture = "SKY1"
+   music = "D_RUNNIN"
 }

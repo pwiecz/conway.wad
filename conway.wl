@@ -20,7 +20,7 @@ control_sector_y_size { mul(8, rowCount) }
 playbox_x_size{ add(mul(rowCount,226),128) }
 playbox_y_size{ add(mul(colCount,226),500) }
 vertical_board_x_size{ mul(128,colCount) }
-vertical_board_y_size{ add(mul(8, rowCount), 165) }
+vertical_board_y_size{ add(mul(8, rowCount), 164) }
 -- scrollSpeed { 34 } -- max speed that works reliably in PrBoom+
 -- scrollSpeed { 32 } -- max speed that works reliably in GzDoom
 scrollSpeed { 32 }
@@ -269,16 +269,12 @@ main {
     movestep(0,8)
   )
 
+
   linetype(exit_w1_normal,0)
   box(mul(128,colCount),ceilingHeight,200,vertical_board_x_size, 32)
-
   movestep(0,32)
   floor("F_SKY1")
-  for(0,8,
-    box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),1)
-    movestep(0,1)
-  )
-  box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),120)
+  box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),128)
 }
 
 riserstep(y,floor,tag,tex) {

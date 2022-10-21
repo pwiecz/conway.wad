@@ -7,3 +7,5 @@ Patch format = 6
 Thing 9 (Mancubus - don't count it towards the kill count)
 Bits = SOLID+SHOOTABLE
 
+[STRINGS]
+CC_MANCU = TOAD
