@@ -7,6 +7,20 @@
 rowCount {13}
 colCount {13}
 ceilingHeight { add(mul(rowCount,128),300) }
+/* Dimensions of the area performing the actual simulation
+   Everything should ideally be aligned to the blockmap boundaries -
+   this way collision detection works reliably, and mancubi are blocking
+   all the teleporting lines. */
+simulator_x_size { mul(128,rowCount) }
+-- 320 = 128+128+32+32
+simulator_y_size { mul(320,colCount) }
+control_sector_x_size { add(1, mul(2, colCount)) }
+control_sector_y_size { mul(8, rowCount) }
+-- dimensions of the main area where the player can move (not counting the vertical board)
+playbox_x_size{ add(mul(rowCount,226),128) }
+playbox_y_size{ add(mul(colCount,226),500) }
+vertical_board_x_size{ mul(128,colCount) }
+vertical_board_y_size{ add(mul(8, rowCount), 165) }
 -- scrollSpeed { 34 } -- max speed that works reliably in PrBoom+
 -- scrollSpeed { 32 } -- max speed that works reliably in GzDoom
 scrollSpeed { 32 }
@@ -17,43 +31,67 @@ lowerfloor1 { 24808 }
 lineteleport { 267 }
 thingteleport { 269 }
 
+/* Draw external walls and record positions of bottom-left corners of various subsectors.
+   All the things and lines will be placed inside those walls
+   Don't create any sector.
+   This draws all the lindefs with opaque midtexture and let's us use empty midtexture
+   for all the remaining linedefs, which helps ameliorate problems with midtexture bleeding.
+*/ 
+drawWalls() {
+  undefx
+  mid("GRAY1")
+  linetype(253, $scroll_north) straight(scrollSpeed)
+  linetype(0,0) straight(sub(simulator_x_size, scrollSpeed))
+  !control_sector_position
+  straight(control_sector_x_size)
+  right(control_sector_y_size)
+  right(control_sector_x_size)
+  left(sub(simulator_y_size, control_sector_y_size))
+  left(sub(playbox_x_size, simulator_x_size))
+  right(playbox_y_size)
+  right(sub(playbox_x_size,vertical_board_x_size))
+  left(vertical_board_y_size)
+  right(vertical_board_x_size)
+  right(vertical_board_y_size)
+  rotright
+  !vertical_board_position
+  left(playbox_y_size)
+  rotright
+  !playbox_position
+  left(simulator_y_size)
+  rotright
+}
+
 main {
-  turnaround
+  /* Rotate the map to make it all fit in the positive quarter of the doom coordinate space.
+     With the least coordinate at (0,0), this way we can assure that all the simulator blocks
+     are aligned to blockmap boundaries.
+  */
+  turnaround   
+  initializeTags
+  top("-")
+  mid("-")  
+  !origin
+  drawWalls()
   xoff(0)
   yoff(0)
-  top("-")
-  mid("GRAY1")
-  !origin
-  movestep(mul(128,rowCount),0)
-  linetype(253, $scroll_north) straight(scrollSpeed)
-  linetype(0,0) right(1)
-  right(scrollSpeed)
-  right(1)
-  sectortype(0,$scroll_north)
-  rightsector(0,ceilingHeight,200)
-  rotright
-  set("scrollingSector",lastsector)
-  movestep(0,1)
-  
-  initializeTags
+
+  ^control_sector_position
+  mid("-")
   controlSector()
 
-  -- everything must be aligned to blockmap boundary, so start the "logic" from 0,0
+  -- Close off the simulator sector
+  ^playbox_position
+  mid("-")
+  impassable
+  straight(simulator_x_size)
+  impassable
+  sectortype(0,$scroll_north)
+  leftsector(0,ceilingHeight,200)
+  set("scrollingSector",lastsector)
+
   ^origin
 
-  forcesector(get("scrollingSector"))
-  straight(mul(128,rowCount))
-  right(mul(320,colCount))
-  mid("-")
-  impassable
-  right(mul(128,rowCount))
-  impassable
-  mid("GRAY1")
-  right(mul(320,colCount))
-  rightsector(0,ceilingHeight,200)
-  rotright
-
-  mid("-")
   !checkers
   forvar("x",0,sub(colCount,1),
     !column
@@ -68,6 +106,7 @@ main {
   )
   ^checkers
   movestep(0,mul(128,colCount))
+
   !aliveCells
   forvar("x",0,sub(colCount,1),
     !column
@@ -82,6 +121,7 @@ main {
   )
   ^aliveCells  
   movestep(0,mul(128,colCount))
+
   !ladders
   forvar("x",0,sub(colCount,1),
     !column
@@ -155,32 +195,15 @@ main {
     movestep(0,32)
   )
   ^barrels
-  movestep(mul(-96,rowCount),mul(32,colCount))
 
-  sectortype(0,0)
-  mid("GRAY1")
-  right(add(mul(colCount,226),500))
+  ^playbox_position
   mid("-")
-  left(mul(rowCount,128))
-  mid("GRAY1")
-  straight(add(mul(rowCount,98),128))
-  left(add(mul(colCount,226),500))
-  left(add(mul(rowCount,162),128))
-  mid("-")
-  straight(mul(rowCount,64))
-  leftsector(0,ceilingHeight,200)
-  turnaround
-  !playbox
   movestep(32, 17)
-
   player1start
   thingangle(rotatedAngle(angle_east))
+  movestep(-32, 15)
 
-  ^playbox
-
-  mid("-")
   yoff(32)
-  movestep(1, 32)
   bot("BROWN96")
   right(32)
   left(8)
@@ -191,10 +214,20 @@ main {
   linetype(0,0)
   bot("BROWN96")
   left(8)
-  innerleftsector(96,ceilingHeight,200)
+  leftsector(96,ceilingHeight,200)
   turnaround
-  popsector
   yoff(0)
+  xoff(0)
+
+  -- Close off the playbox sector.
+  ^vertical_board_position
+  mid("-")
+  straight(vertical_board_x_size)
+  sectortype(0,0)
+  leftsector(0,ceilingHeight,200)
+
+  ^playbox_position
+  mid("-")
 
   movestep(127, 128)
   bot("MARBGRAY")
@@ -210,22 +243,20 @@ main {
     ^column
     movestep(0,226)
   )
-  ^playbox
-  mid("GRAY1")
-
   linetype(0,0)
   movestep(0,add(mul(colCount,226),500))
-  xoff(0)
-  !board
+
+
+  ^vertical_board_position
   mid("-")
   forvar("y",0,sub(rowCount,1),
     bot("MARBFAC3")
     riserstep(y,0,0,"MARBFAC3")
     movestep(128,0)
   )
-  ^board
+  ^vertical_board_position
+  mid("-")
   movestep(0,4)
-  undefx
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
@@ -237,56 +268,27 @@ main {
     ^column
     movestep(0,8)
   )
+
   linetype(exit_w1_normal,0)
-  mid("-")
-  straight(mul(128,colCount))
-  mid("GRAY1")
-  right(32)
-  mid("-")
-  right(mul(128,colCount))
-  mid("GRAY1")
-  right(32)
-  rightsector(mul(128,colCount),ceilingHeight,200)
-  rotright
+  box(mul(128,colCount),ceilingHeight,200,vertical_board_x_size, 32)
+
   movestep(0,32)
   floor("F_SKY1")
   for(0,8,
-    mid("-")
-    straight(mul(128,colCount))
-    mid("GRAY1")
-    right(1)
-    mid("-")
-    right(mul(128,colCount))
-    mid("GRAY1")
-    right(1)
-    rightsector(sub(mul(colCount,128),16),ceilingHeight,200)
-    rotright
---    box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),1)
+    box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),1)
     movestep(0,1)
   )
-  mid("-")
-  straight(mul(128,colCount))
-  mid("GRAY1")
-  right(120)
-  right(mul(128,colCount))
-  right(120)
-  rightsector(sub(mul(colCount,128),16),ceilingHeight,200)
-  rotright
---  box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),120)
+  box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),120)
 }
 
-riserstep(y,floor,tag,texture) {
-  mid("-")
-  bot(texture)
+riserstep(y,floor,tag,tex) {
+  bot(tex)
   straight(128)
   bot("DOORTRAK")
-  if(eq(y,sub(rowCount,1)),mid("GRAY1"))
   right(4)
-  bot(texture)
-  mid("-")
+  bot(tex)
   right(128)
   bot("DOORTRAK")
-  if(eq(y,0),mid("GRAY1"))
   right(4)
   sectortype(0,tag)
   rightsector(floor,ceilingHeight,200)
@@ -294,14 +296,16 @@ riserstep(y,floor,tag,texture) {
 }
 
 controlSector() {
-  sectortype(0,0)
-  box(25,ceilingHeight,200,1,add(mul(colCount,8),1))
-  set("raisedSector",lastsector)
-  movestep(1,0)
+  !row
   sectortype(0,barrelStartBlockerTag)
   box(25,ceilingHeight,200,1,1)
-  movestep(0,1)
   set("barrelStartBlockerSector",lastsector)
+  movestep(0,1)
+  sectortype(0,0)
+  box(25,ceilingHeight,200,1,sub(control_sector_y_size, 1))
+  set("raisedSector",lastsector)
+  ^row
+  movestep(1,0)
   forvar("y",0,sub(rowCount,1),
     !row
     forvar("x",0,sub(colCount,1),
@@ -340,9 +344,8 @@ controlSector() {
     )
     ^row
     movestep(1,0)
-
     forcesector(get("raisedSector"))
-    box(0,0,0,1,mul(colCount,8))
+    box(0,0,0,1,control_sector_y_size)
     movestep(1,0)
   )
 }
@@ -492,7 +495,7 @@ cellFinishedBlock(x, y) {
   !allFinished
   forvar("nbrIx",0,7,
     forcesector(cellNbrFinishedSector(x,y,get("nbrIx")))
-    xoff(get("nbrIx"))
+    xoff(mod(get("nbrIx"),2))
     box(0,0,0,1,1)
     movestep(0,1)
   )
@@ -533,7 +536,7 @@ waitAllNbrsCommittedBlock(x,y) {
   !allCommitted
   forvar("nbrIx",0,7,
     forcesector(cellNbrCommittedSector(x,y,get("nbrIx")))
-    xoff(get("nbrIx"))
+    xoff(mod(get("nbrIx"),2))
     box(0,0,0,1,1)
     movestep(0,1)
   )
@@ -557,7 +560,7 @@ waitAllNbrsStartedBlock(x,y) {
   !allStarted
   forvar("nbrIx",0,7,
     forcesector(cellNbrStartedSector(x,y,get("nbrIx")))
-    xoff(get("nbrIx"))
+    xoff(mod(get("nbrIx"),2))
     box(0,0,0,1,1)
     movestep(0,1)
   )
