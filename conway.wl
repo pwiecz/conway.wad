@@ -6,7 +6,7 @@
 
 rowCount {13}
 colCount {13}
-ceilingHeight { add(mul(rowCount,128),300) }
+ceilingHeight { add(mul(colCount,128),300) }
 /* Dimensions of the area performing the actual simulation
    Everything must be aligned to the blockmap boundaries -
    this way collision detection works reliably. E.g. mancubi are blocking
@@ -14,13 +14,13 @@ ceilingHeight { add(mul(rowCount,128),300) }
 simulator_x_size { mul(128,rowCount) }
 -- 320 = 128+128+32+32
 simulator_y_size { mul(320,colCount) }
-control_sector_x_size { add(1, mul(3, colCount)) }
-control_sector_y_size { mul(4, rowCount) }
+control_sector_x_size { add(1,mul(3,rowCount)) }
+control_sector_y_size { mul(5,colCount) }
 -- dimensions of the main area where the player can move (not counting the vertical board)
 playbox_x_size{ add(mul(rowCount,226),128) }
 playbox_y_size{ add(mul(colCount,226),500) }
-vertical_board_x_size{ mul(128,colCount) }
-vertical_board_y_size{ add(mul(8, rowCount), 164) }
+vertical_board_x_size{ mul(128,rowCount) }
+vertical_board_y_size{ add(mul(8,colCount), 164) }
 -- scrollSpeed { 34 } -- max speed that works reliably in PrBoom+
 -- scrollSpeed { 32 } -- max speed that works reliably in GzDoom
 scrollSpeed { 32 }
@@ -28,48 +28,9 @@ barrel { setthing(2035) }
 lowerceiling { 16617 }
 raisefloor { 24617 }
 lowerfloor { 24809 }
-lowerfloor1 { 24808 }
+lowerfloortoceiling { 25065 }
 lineteleport { 267 }
 thingteleport { 269 }
-
-/* Draw external walls and record positions of bottom-left corners of various subsectors.
-   All the things and lines will be placed inside those walls
-   Don't create any sector.
-   This draws all the lindefs with opaque midtexture and let's us use empty midtexture
-   for all the remaining linedefs, which helps ameliorate problems with midtexture bleeding.
-   Reset midtexture and orientation before saving any state, so that we don't have to reset
-   them elsewhere in the code.
-*/ 
-drawWalls() {
-  undefx
-  mid("GRAY1")
-  linetype(253, $scroll_north) straight(scrollSpeed)
-  linetype(0,0) straight(sub(simulator_x_size, scrollSpeed))
-  mid("-")
-  !control_sector_position
-  mid("GRAY1")
-  straight(control_sector_x_size)
-  right(control_sector_y_size)
-  right(control_sector_x_size)
-  left(sub(simulator_y_size, control_sector_y_size))
-  left(sub(playbox_x_size, simulator_x_size))
-  right(playbox_y_size)
-  right(sub(playbox_x_size,vertical_board_x_size))
-  left(vertical_board_y_size)
-  right(vertical_board_x_size)
-  right(vertical_board_y_size)
-  rotright
-  mid("-")
-  !vertical_board_position
-  mid("GRAY1")
-  left(playbox_y_size)
-  rotright
-  mid("-")
-  !playbox_position
-  mid("GRAY1")
-  left(simulator_y_size)
-  rotright
-}
 
 main {
   /* Rotate the map to make it all fit in the positive quarter of the doom coordinate space.
@@ -77,16 +38,16 @@ main {
      are aligned to blockmap boundaries.
   */
   turnaround   
-  initializeTags
+  initialize_tags
   top("-")
   mid("-")  
   !origin
-  drawWalls()
+  draw_external_walls
   xoff(0)
   yoff(0)
 
   ^control_sector_position
-  controlSector()
+  controlSector
 
   -- Close off the simulator sector
   ^playbox_position
@@ -241,7 +202,7 @@ main {
     !column
     forvar("y",0,sub(rowCount,1),
       forcesector(stepSector(x,y))
-      linetype(lowerfloor1,cellDeadBlockerTag(x,y))
+      linetype(lowerfloor,cellDeadBlockerTag(x,y))
       ibox(0,0,0,128,128)
       popsector
       movestep(226,0)
@@ -278,7 +239,46 @@ main {
   box(mul(128,colCount),ceilingHeight,200,vertical_board_x_size, 32)
   movestep(0,32)
   floor("F_SKY1")
-  box(sub(mul(colCount,128),16),ceilingHeight,200,mul(128,colCount),128)
+  box(sub(mul(colCount,128),16),ceilingHeight,200,vertical_board_x_size,128)
+}
+
+/* Draw external walls and record positions of bottom-left corners of various subsectors.
+   All the things and lines will be placed inside those walls
+   Don't create any sector.
+   This draws all the lindefs with opaque midtexture and let's us use empty midtexture
+   for all the remaining linedefs, which helps ameliorate problems with midtexture bleeding.
+   Reset midtexture and orientation before saving any state, so that we don't have to reset
+   them elsewhere in the code.
+*/ 
+draw_external_walls() {
+  undefx
+  mid("GRAY1")
+  linetype(253, $scroll_north) straight(scrollSpeed)
+  linetype(0,0) straight(sub(simulator_x_size, scrollSpeed))
+  mid("-")
+  !control_sector_position
+  mid("GRAY1")
+  straight(control_sector_x_size)
+  right(control_sector_y_size)
+  right(control_sector_x_size)
+  left(sub(simulator_y_size, control_sector_y_size))
+  left(sub(playbox_x_size, simulator_x_size))
+  right(playbox_y_size)
+  right(sub(playbox_x_size,vertical_board_x_size))
+  left(vertical_board_y_size)
+  right(vertical_board_x_size)
+  right(vertical_board_y_size)
+  rotright
+  mid("-")
+  !vertical_board_position
+  mid("GRAY1")
+  left(playbox_y_size)
+  rotright
+  mid("-")
+  !playbox_position
+  mid("GRAY1")
+  left(simulator_y_size)
+  rotright
 }
 
 riserstep(y,floor,tag,tex) {
@@ -306,6 +306,12 @@ controlSector() {
   forvar("y",0,sub(rowCount,1),
     !row
     forvar("x",0,sub(colCount,1),
+      -- A sector neighbouring "step_sector" used for setting height
+      -- for the low position of the step-on buttons
+      if(or(lessthan(0,x),lessthan(0,y)),forcesector(get("low_ceiling_sector")))
+      box(0,13,200,1,1)
+      if(and(eq(x,0),eq(y,0)),set("low_ceiling_sector",lastsector))
+      movestep(0,1)
       sectortype(0,cellDeadBlockerTag(x,y))
       box(25,ceilingHeight,200,1,1)
       set(cat3("cellDeadBlockerSector",x,y),lastsector)
@@ -321,14 +327,11 @@ controlSector() {
       sectortype(0,cellRevivedBlockerTag(x,y))
       box(25,ceilingHeight,200,1,1)
       set(cat3("cellRevivedBlockerSector",x,y),lastsector)
-      movestep(1,-3)
+      movestep(1,-4)
       sectortype(0,stepTag(x,y))
-      !stepsector_start
-      floor("FLOOR7_1")
-      box(13,ceilingHeight,200,1,1)
-      set(cat3("stepSector",x,y),lastsector)
-      ^stepsector_start
-      movestep(0,1)
+      box(13,ceilingHeight,200,1,2)
+      set(cat3("step_sector",x,y),lastsector)
+      movestep(0,2)
       sectortype(0,cellFinishedTag(x,y))
       box(25,ceilingHeight,200,1,1)
       set(cat3("cellFinishedSector",x,y),lastsector)
@@ -432,7 +435,7 @@ checkerForCell(x, y) {
   movestep(-4,-10)
   lineleft(20,0,cellDeadTag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloor,stepTag(x,y))
+  lineright(20,lowerfloortoceiling,stepTag(x,y))
   movestep(1,0)
   lineright(20,raisefloor,cellRevivedBlockerTag(x,y))
   movestep(1,0)
@@ -611,10 +614,8 @@ barrelStart(x,y) {
   movestep(1,-10)
   lineright(20,lowerceiling,stepTag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloor,stepTag(x,y))
-  movestep(1,0)
   lineright(20,thingteleport,keepCellTag(x,y))
-  movestep(7,0)
+  movestep(8,0)
   sectortype(0,barrelStartBlockerTag)
   if(or(lessthan(0,x),lessthan(0,y)),forcesector(get("barrelStartBlockerSector")))
   ibox(25,ceilingHeight,200,1,20)
@@ -653,10 +654,10 @@ suby1(y) {
   mod(add(y,sub(rowCount,1)),rowCount)
 }
 addy1(y) {
-  mod(add(y,1),colCount)
+  mod(add(y,1),rowCount)
 }
 
-initializeTags {
+initialize_tags {
   set("barrelStartBlocker",newtag)
   forvar("x",0,sub(colCount,1),
     forvar("y",0,sub(rowCount,1),
@@ -780,7 +781,7 @@ stepTag(x,y) {
   get(cat3("step",x,y))
 }
 stepSector(x,y) {
-  get(cat3("stepSector",x,y))
+  get(cat3("step_sector",x,y))
 }
 stdbox(x,y) {
   box(0,ceilingHeight,200,x,y)
