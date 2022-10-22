@@ -8,8 +8,8 @@ rowCount {13}
 colCount {13}
 ceilingHeight { add(mul(rowCount,128),300) }
 /* Dimensions of the area performing the actual simulation
-   Everything should ideally be aligned to the blockmap boundaries -
-   this way collision detection works reliably, and mancubi are blocking
+   Everything must be aligned to the blockmap boundaries -
+   this way collision detection works reliably. E.g. mancubi are blocking
    all the teleporting lines. */
 simulator_x_size { mul(128,rowCount) }
 -- 320 = 128+128+32+32
@@ -36,13 +36,17 @@ thingteleport { 269 }
    Don't create any sector.
    This draws all the lindefs with opaque midtexture and let's us use empty midtexture
    for all the remaining linedefs, which helps ameliorate problems with midtexture bleeding.
+   Reset midtexture and orientation before saving any state, so that we don't have to reset
+   them elsewhere in the code.
 */ 
 drawWalls() {
   undefx
   mid("GRAY1")
   linetype(253, $scroll_north) straight(scrollSpeed)
   linetype(0,0) straight(sub(simulator_x_size, scrollSpeed))
+  mid("-")
   !control_sector_position
+  mid("GRAY1")
   straight(control_sector_x_size)
   right(control_sector_y_size)
   right(control_sector_x_size)
@@ -54,10 +58,14 @@ drawWalls() {
   right(vertical_board_x_size)
   right(vertical_board_y_size)
   rotright
+  mid("-")
   !vertical_board_position
+  mid("GRAY1")
   left(playbox_y_size)
   rotright
+  mid("-")
   !playbox_position
+  mid("GRAY1")
   left(simulator_y_size)
   rotright
 }
@@ -77,12 +85,10 @@ main {
   yoff(0)
 
   ^control_sector_position
-  mid("-")
   controlSector()
 
   -- Close off the simulator sector
   ^playbox_position
-  mid("-")
   impassable
   straight(simulator_x_size)
   impassable
@@ -197,7 +203,6 @@ main {
   ^barrels
 
   ^playbox_position
-  mid("-")
   movestep(32, 17)
   player1start
   thingangle(rotatedAngle(angle_east))
@@ -221,13 +226,11 @@ main {
 
   -- Close off the playbox sector.
   ^vertical_board_position
-  mid("-")
   straight(vertical_board_x_size)
   sectortype(0,0)
   leftsector(0,ceilingHeight,200)
 
   ^playbox_position
-  mid("-")
 
   movestep(127, 128)
   bot("MARBGRAY")
@@ -248,14 +251,12 @@ main {
 
 
   ^vertical_board_position
-  mid("-")
   forvar("y",0,sub(rowCount,1),
     bot("MARBFAC3")
     riserstep(y,0,0,"MARBFAC3")
     movestep(128,0)
   )
   ^vertical_board_position
-  mid("-")
   movestep(0,4)
   forvar("x",0,sub(colCount,1),
     !column
@@ -468,23 +469,14 @@ aliveCellBlock(x,y) {
 cellFinishedBlock(x, y) {
   movestep(9,10)
   sectortype(0,killCellTag(x,y))
-  stdboxwithfrontline(2,2,raisefloor,cellCommittedTag(x,y))
-  movestep(1,1)
-  teleportlanding
-  thingangle(rotatedAngle(angle_north))
-  movestep(-1,1)
+  teleport_sector_with_front_line(2,2,raisefloor,cellCommittedTag(x,y))
+  movestep(0,2)
   sectortype(0,keepCellTag(x,y))
-  stdboxwithfrontline(2,8,lowerfloor,cellFinishedTag(x,y))
-  movestep(1,4)
-  teleportlanding
-  thingangle(rotatedAngle(angle_north))
-  movestep(-1,4)
+  teleport_sector_with_front_line(2,8,lowerfloor,cellFinishedTag(x,y))
+  movestep(0,8)
   sectortype(0,reviveCellTag(x,y))
-  stdboxwithfrontline(2,2,raisefloor,cellCommittedTag(x,y))
-  movestep(1,1)
-  teleportlanding
-  thingangle(rotatedAngle(angle_north))
-  movestep(-1,-11)
+  teleport_sector_with_front_line(2,2,raisefloor,cellCommittedTag(x,y))
+  movestep(0,-10)
   forcesector(get("scrollingSector"))
   invbox(0,0,0,2,12)
   movestep(13,2)
@@ -517,16 +509,15 @@ cellFinishedBlock(x, y) {
   ibox(0,0,0,1,2)
   popsector
   movestep(-9,-23)
-  lineright(20,thingteleport,allNbrsFinishedTag(x,y))
+  lineright(20,lineteleport,allNbrsFinishedTag(x,y))
 }
+
 waitAllNbrsCommittedBlock(x,y) {
-  movestep(9,6)
-  sectortype(0,allNbrsFinishedTag(x,y))
-  stdiboxwithfrontline(2,20,raisefloor,cellStartedTag(x,y))
-  movestep(1,10)
-  teleportlanding
-  thingangle(rotatedAngle(angle_north))
-  movestep(2,-10)  
+  movestep(10, 6)
+  lineleft(20,0,allNbrsFinishedTag(x,y))
+  movestep(1,0)
+  lineright(20,raisefloor,cellStartedTag(x,y))
+  movestep(1,0)
   lineright(20,lowerfloor,cellCommittedTag(x,y))
   movestep(11,6)
   !allCommitted
@@ -570,12 +561,11 @@ waitAllNbrsStartedBlock(x,y) {
 }
 
 /* Use empty textures for disconnected linedefs, so that ZokumBSP can recognize those
-   linedefs as invisible and ignore them in bsp calculations */
+   linedefs as invisible and ignore them in bsp calculations.
+*/
 lineright(len,type,tag) {
   !line_start_position
   bot("-")
-  mid("-")
-  top("-")
   forcesector(get("scrollingSector"))
   linetype(type,tag) step(0,len)
   linetype(0,0) step(0,neg(len))
@@ -585,14 +575,28 @@ lineright(len,type,tag) {
 lineleft(len,type,tag) {
   !line_start_position
   bot("-")
-  mid("-")
-  top("-")
   forcesector(get("scrollingSector"))
   movestep(0,len)
   linetype(type,tag) step(0,neg(len))
   linetype(0,0) step(0,len)
   rightsector(0,0,0)
   ^line_start_position
+}
+
+/* Draw a rectangular sector with a teleport landing in the middle.
+   Make the front line of the sector have specified type and tag.
+*/
+teleport_sector_with_front_line(x,y,line_type,line_tag) {
+  linetype(0,0) straight(x)
+  linetype(line_type,line_tag) right(y)
+  linetype(0,0) right(x)
+  right(y)
+  rightsector(0,ceilingHeight,200)
+  rotright
+  movestep(div(x,2),div(y,2))
+  teleportlanding
+  thingangle(rotatedAngle(angle_north))
+  movestep(div(x,-2),div(y,-2))
 }
 
 barrelStart(x,y) {
@@ -777,14 +781,6 @@ stdiboxwithfrontline(x,y,type,tag) {
   linetype(0,0) right(x)
   right(y)
   innerrightsector(0,ceilingHeight,200)
-  rotright
-}
-stdboxwithfrontline(x,y,type,tag) {
-  linetype(0,0) straight(x)
-  linetype(type,tag) right(y)
-  linetype(0,0) right(x)
-  right(y)
-  rightsector(0,ceilingHeight,200)
   rotright
 }
 
