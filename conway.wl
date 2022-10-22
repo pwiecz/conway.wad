@@ -29,6 +29,7 @@ lowerceiling { 16617 }
 raisefloor { 24617 }
 lowerfloor { 24809 }
 lowerfloortoceiling { 25065 }
+lowerflooronswitch { 24778 }
 lineteleport { 267 }
 thingteleport { 269 }
 
@@ -177,7 +178,7 @@ main {
   left(1)
   xoff(48)
   bot("SW1BROWN")
-  linetype(24778,barrelStartBlockerTag)
+  linetype(lowerflooronswitch,barrelStartBlockerTag)
   left(32)
   linetype(0,0)
   xoff(49)
@@ -201,7 +202,7 @@ main {
   forvar("x",0,sub(colCount,1),
     !column
     forvar("y",0,sub(rowCount,1),
-      forcesector(stepSector(x,y))
+      forcesector(stepOnSector(x,y))
       linetype(lowerfloor,cellDeadBlockerTag(x,y))
       ibox(0,0,0,128,128)
       popsector
@@ -242,13 +243,14 @@ main {
   box(sub(mul(colCount,128),16),ceilingHeight,200,vertical_board_x_size,128)
 }
 
-/* Draw external walls and record positions of bottom-left corners of various subsectors.
-   All the things and lines will be placed inside those walls
-   Don't create any sector.
-   This draws all the lindefs with opaque midtexture and let's us use empty midtexture
-   for all the remaining linedefs, which helps ameliorate problems with midtexture bleeding.
-   Reset midtexture and orientation before saving any state, so that we don't have to reset
-   them elsewhere in the code.
+/*
+ * Draw external walls and record positions of bottom-left corners of various subsectors.
+ * All the things and lines will be placed inside those walls
+ * Don't create any sector.
+ * This draws all the lindefs with opaque midtexture and let's us use empty midtexture
+ * for all the remaining linedefs, which helps ameliorate problems with midtexture bleeding.
+ * Reset midtexture and orientation before saving any state, so that we don't have to reset
+ * them elsewhere in the code.
 */ 
 draw_external_walls() {
   undefx
@@ -295,19 +297,23 @@ riserstep(y,floor,tag,tex) {
   rotright
 }
 
+/* 
+ * Make a "raised_sector" with high floor neighbour all of the sectors used for blocking
+ * barrel and mancubus movements. So that we can instantly move them up and down.
+ * Also contains "low_ceiling_sector" used for lowering "step_on_sector" to a low (but not zero)
+ * position using move-floor-to-lowest-neighbour-ceiling action.
+ */
 controlSector() {
   !row
   top("GRAY1")
   sectortype(0,0)
   box(25,26,200,1,control_sector_y_size)
-  set("raisedSector",lastsector)
+  set("raised_sector",lastsector)
   top("-")
   movestep(1,0)
   forvar("y",0,sub(rowCount,1),
     !row
     forvar("x",0,sub(colCount,1),
-      -- A sector neighbouring "step_sector" used for setting height
-      -- for the low position of the step-on buttons
       if(or(lessthan(0,x),lessthan(0,y)),forcesector(get("low_ceiling_sector")))
       box(0,13,200,1,1)
       if(and(eq(x,0),eq(y,0)),set("low_ceiling_sector",lastsector))
@@ -330,7 +336,7 @@ controlSector() {
       movestep(1,-4)
       sectortype(0,stepTag(x,y))
       box(13,ceilingHeight,200,1,2)
-      set(cat3("step_sector",x,y),lastsector)
+      set(cat3("step_on_sector",x,y),lastsector)
       movestep(0,2)
       sectortype(0,cellFinishedTag(x,y))
       box(25,ceilingHeight,200,1,1)
@@ -347,7 +353,7 @@ controlSector() {
     )
     ^row
     movestep(2,0)
-    forcesector(get("raisedSector"))
+    forcesector(get("raised_sector"))
     box(0,0,0,1,control_sector_y_size)
     movestep(1,0)
   )
@@ -568,8 +574,9 @@ waitAllNbrsStartedBlock(x,y) {
   lineright(20,lineteleport,startCheckTag(x,y))
 }
 
-/* Use empty textures for disconnected linedefs, so that ZokumBSP can recognize those
-   linedefs as invisible and ignore them in bsp calculations.
+/*
+ * Use empty textures for disconnected linedefs, so that ZokumBSP can recognize those
+ * linedefs as invisible and ignore them in bsp calculations.
 */
 lineright(len,type,tag) {
   !line_start_position
@@ -591,9 +598,10 @@ lineleft(len,type,tag) {
   ^line_start_position
 }
 
-/* Draw a rectangular sector with a teleport landing in the middle.
-   Make the front line of the sector have specified type and tag.
-*/
+/*
+ * Draw a rectangular sector with a teleport landing in the middle.
+ * Make the front line of the sector have specified type and tag.
+ */
 teleport_sector_with_front_line(x,y,line_type,line_tag) {
   linetype(0,0) straight(x)
   linetype(line_type,line_tag) right(y)
@@ -607,11 +615,16 @@ teleport_sector_with_front_line(x,y,line_type,line_tag) {
   movestep(div(x,-2),div(y,-2))
 }
 
+/*
+ * A block being a start position for a barrel before the user pulls the switch
+ * to start the simulation.
+ */
 barrelStart(x,y) {
   movestep(10,16)
   barrel
   thing
   movestep(1,-10)
+  -- lower ceiling over step-on buttons to prevent user from messing up the board during simulation
   lineright(20,lowerceiling,stepTag(x,y))
   movestep(1,0)
   lineright(20,thingteleport,keepCellTag(x,y))
@@ -780,8 +793,8 @@ marbTag(x,y) {
 stepTag(x,y) {
   get(cat3("step",x,y))
 }
-stepSector(x,y) {
-  get(cat3("step_sector",x,y))
+stepOnSector(x,y) {
+  get(cat3("step_on_sector",x,y))
 }
 stdbox(x,y) {
   box(0,ceilingHeight,200,x,y)
