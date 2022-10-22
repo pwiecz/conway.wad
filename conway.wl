@@ -14,8 +14,8 @@ ceilingHeight { add(mul(rowCount,128),300) }
 simulator_x_size { mul(128,rowCount) }
 -- 320 = 128+128+32+32
 simulator_y_size { mul(320,colCount) }
-control_sector_x_size { add(1, mul(2, colCount)) }
-control_sector_y_size { mul(8, rowCount) }
+control_sector_x_size { add(1, mul(3, colCount)) }
+control_sector_y_size { mul(4, rowCount) }
 -- dimensions of the main area where the player can move (not counting the vertical board)
 playbox_x_size{ add(mul(rowCount,226),128) }
 playbox_y_size{ add(mul(colCount,226),500) }
@@ -25,6 +25,7 @@ vertical_board_y_size{ add(mul(8, rowCount), 164) }
 -- scrollSpeed { 32 } -- max speed that works reliably in GzDoom
 scrollSpeed { 32 }
 barrel { setthing(2035) }
+lowerceiling { 16617 }
 raisefloor { 24617 }
 lowerfloor { 24809 }
 lowerfloor1 { 24808 }
@@ -294,14 +295,11 @@ riserstep(y,floor,tag,tex) {
 
 controlSector() {
   !row
-  sectortype(0,barrelStartBlockerTag)
-  box(25,ceilingHeight,200,1,1)
-  set("barrelStartBlockerSector",lastsector)
-  movestep(0,1)
+  top("GRAY1")
   sectortype(0,0)
-  box(25,ceilingHeight,200,1,sub(control_sector_y_size, 1))
+  box(25,26,200,1,control_sector_y_size)
   set("raisedSector",lastsector)
-  ^row
+  top("-")
   movestep(1,0)
   forvar("y",0,sub(rowCount,1),
     !row
@@ -321,10 +319,13 @@ controlSector() {
       sectortype(0,cellRevivedBlockerTag(x,y))
       box(25,ceilingHeight,200,1,1)
       set(cat3("cellRevivedBlockerSector",x,y),lastsector)
-      movestep(0,1)
+      movestep(1,-3)
       sectortype(0,stepTag(x,y))
+      !stepsector_start
+      floor("FLOOR7_1")
       box(13,ceilingHeight,200,1,1)
       set(cat3("stepSector",x,y),lastsector)
+      ^stepsector_start
       movestep(0,1)
       sectortype(0,cellFinishedTag(x,y))
       box(25,ceilingHeight,200,1,1)
@@ -337,10 +338,10 @@ controlSector() {
       sectortype(0,cellStartedTag(x,y))
       box(25,ceilingHeight,200,1,1)
       set(cat3("cellStartedSector",x,y),lastsector)
-      movestep(0,1)
+      movestep(-1,1)
     )
     ^row
-    movestep(1,0)
+    movestep(2,0)
     forcesector(get("raisedSector"))
     box(0,0,0,1,control_sector_y_size)
     movestep(1,0)
@@ -428,6 +429,8 @@ checkerForCell(x, y) {
   thingangle(rotatedAngle(angle_west))
   movestep(-4,-10)
   lineleft(20,0,cellDeadTag(x,y))
+  movestep(1,0)
+  lineright(20,lowerfloor,stepTag(x,y))
   movestep(1,0)
   lineright(20,raisefloor,cellRevivedBlockerTag(x,y))
   movestep(1,0)
@@ -604,12 +607,17 @@ barrelStart(x,y) {
   barrel
   thing
   movestep(1,-10)
-  lineright(20,raisefloor,stepTag(x,y))
+  lineright(20,lowerceiling,stepTag(x,y))
+  movestep(1,0)
+  lineright(20,lowerfloor,stepTag(x,y))
   movestep(1,0)
   lineright(20,thingteleport,keepCellTag(x,y))
-  movestep(8,0)
-  forcesector(get("barrelStartBlockerSector"))
-  ibox(0,0,0,1,20)
+  movestep(7,0)
+  sectortype(0,barrelStartBlockerTag)
+  if(or(lessthan(0,x),lessthan(0,y)),forcesector(get("barrelStartBlockerSector")))
+  ibox(25,ceilingHeight,200,1,20)
+  if(and(eq(x,0),eq(y,0)),set("barrelStartBlockerSector",lastsector))
+  sectortype(0,0)
   popsector
 }
 
