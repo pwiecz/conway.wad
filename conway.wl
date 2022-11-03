@@ -11,8 +11,8 @@ step_texture { "FLOOR7_2" }
 scroller_texture { "SLIME15" }
 playbox_texture { "FLAT5_2" }
 light_level { 181 }
-row_count {13}
-col_count {13}
+row_count {12}
+col_count {12}
 ceiling_height { add(mul(col_count,128),256) }
 /* Dimensions of the area performing the actual simulation
    Everything must be aligned to the blockmap boundaries -
@@ -21,8 +21,8 @@ ceiling_height { add(mul(col_count,128),256) }
 simulator_x_size { mul(128,row_count) }
 -- 320 = 128+128+32+32
 simulator_y_size { mul(320,col_count) }
-control_sector_x_size { add(1,mul(3,row_count)) }
-control_sector_y_size { mul(5,col_count) }
+gallery_x_size { 128 }
+control_sector_y_size { min(div(add(mul(7,mul(row_count,col_count)),1),2),sub(simulator_y_size,1)) }
 -- dimensions of the main area where the player can move (not counting the vertical board)
 playbox_x_size{ add(mul(row_count,224),128) }
 playbox_y_size{ add(mul(col_count,224),500) }
@@ -36,10 +36,10 @@ direction_up { 1 }
 direction_down { 0 }
 lowerceiling { genceiling(trigger_wr,speed_slow,model_numeric,direction_up,ceiling_target_LnC,nochange,0) } -- 16617
 raisefloor { genfloor(trigger_wr,speed_slow,model_numeric,direction_down,floor_target_HnF,nochange,0) }-- 24617
-raisefloorturbo { genfloor(trigger_wr,speed_turbo,model_numeric,direction_up,floor_target_HnF,nochange,0) } -- 24697
+--raisefloorturbo { genfloor(trigger_wr,speed_turbo,model_numeric,direction_up,floor_target_HnF,nochange,0) } -- 24697
 lowerfloor { genfloor(trigger_wr,speed_slow,model_numeric,direction_up,floor_target_LnF,nochange,0) } -- 24809
-lowerfloorturbo { genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnF,nochange,0) }
-lowerfloortoceilingturbo {genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnC,nochange,0) }
+--lowerfloorturbo { genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnF,nochange,0) }
+--lowerfloortoceilingturbo {genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnC,nochange,0) }
 lowerfloortoceiling { 25065 }
 lowerflooronswitch { 24778 }
 lineteleport { 267 }
@@ -60,17 +60,36 @@ main {
   xoff(0)
   yoff(0)
 
-  ^control_sector_position
+  ^origin
+  straight(add(add(simulator_x_size,gallery_x_size),1))
   control_sector
+
+  ^gallery_position
+  floor(playbox_texture)
+  impassable
+  unpegged
+  mid("MIDBARS3")
+  right(simulator_y_size)
+  unpegged
+  impassable
+  mid("-")
+  left(gallery_x_size)
+  sectortype(0,0)
+  leftsector(0,ceiling_height,light_level)
 
   -- Close off the simulator sector
   ^playbox_position
   impassable
+  unpegged
+  mid("MIDBARS3")
   straight(simulator_x_size)
+  left(simulator_y_size)
+  mid("-")
+  unpegged
   impassable
   floor(scroller_texture)
   sectortype(0,$scroll_north)
-  leftsector(0,ceiling_height,light_level)
+  leftsector(-128,ceiling_height,light_level)
   set("scrollingSector",lastsector)
 
   ^origin
@@ -273,13 +292,11 @@ draw_external_walls() {
   linetype(252, $scroll_north) straight(scroll_speed)
   linetype(0,0) straight(sub(simulator_x_size, scroll_speed))
   mid("-")
-  !control_sector_position
+  !gallery_position
   mid(wall_texture)
-  straight(control_sector_x_size)
-  right(control_sector_y_size)
-  right(control_sector_x_size)
-  left(sub(simulator_y_size, control_sector_y_size))
-  left(sub(playbox_x_size, simulator_x_size))
+  straight(gallery_x_size)
+  right(simulator_y_size)
+  left(sub(playbox_x_size, add(simulator_x_size,gallery_x_size)))
   right(playbox_y_size)
   right(sub(playbox_x_size,vertical_board_x_size))
   left(vertical_board_y_size)
@@ -310,6 +327,19 @@ riserstep(y,floor,tag,tex) {
   rotright
 }
 
+maybe_next_control_row() {
+  if(lessthaneq(control_sector_y_size,get("control_y_pos")),
+    ^row
+    set("control_y_pos",0)
+    movestep(1,0)
+    inc("control_row_count",1)
+    if(eq(mod(get("control_row_count"),2),0),
+      forcesector(get("raised_sector"))
+      box(0,0,0,1,control_sector_y_size)
+      movestep(1,0))
+      !row)
+}
+
 /* 
  * Make a "raised_sector" with high floor neighbour all of the sectors used for blocking
  * barrel and mancubus movements. So that we can instantly move them up and down.
@@ -317,62 +347,84 @@ riserstep(y,floor,tag,tex) {
  * position using move-floor-to-lowest-neighbour-ceiling action.
  */
 control_sector() {
-  !row
-  top(wall_texture)
   sectortype(0,0)
-  box(25,26,light_level,1,control_sector_y_size)
+  box(-100,ceiling_height,light_level,1,control_sector_y_size)
   set("raised_sector",lastsector)
-  top("-")
   movestep(1,0)
+  set("control_y_pos",0)
+  set("control_row_count",0)
+  !row
   forvar("y",0,sub(row_count,1),
-    !row
     forvar("x",0,sub(col_count,1),
-      if(or(lessthan(0,x),lessthan(0,y)),forcesector(get("low_ceiling_sector")))
-      box(0,9,light_level,1,1)
-      if(and(eq(x,0),eq(y,0)),set("low_ceiling_sector",lastsector))
-      movestep(0,1)
+      maybe_next_control_row
       sectortype(0,cellDeadBlockerTag(x,y))
-      box(25,ceiling_height,light_level,1,1)
+      box(-100,ceiling_height,light_level,1,1)
       set(cat3("cellDeadBlockerSector",x,y),lastsector)
       movestep(0,1)
+      inc("control_y_pos",1)
+      maybe_next_control_row
       sectortype(0,cellAliveBlockerTag(x,y))
-      box(25,ceiling_height,light_level,1,1)
+      box(-100,ceiling_height,light_level,1,1)
       set(cat3("cellAliveBlockerSector",x,y),lastsector)
       movestep(0,1)
+      inc("control_y_pos",1)
+      maybe_next_control_row
       sectortype(0,cellKilledBlockerTag(x,y))
-      box(0,ceiling_height,light_level,1,1)
+      box(-128,ceiling_height,light_level,1,1)
       set(cat3("cellKilledBlockerSector",x,y),lastsector)
       movestep(0,1)
+      inc("control_y_pos",1)
+      maybe_next_control_row
       sectortype(0,cellRevivedBlockerTag(x,y))
-      box(25,ceiling_height,light_level,1,1)
+      box(-100,ceiling_height,light_level,1,1)
       set(cat3("cellRevivedBlockerSector",x,y),lastsector)
-      movestep(1,-4)
-      sectortype(0,stepTag(x,y))
-      !step_on
-      floor(step_texture)
-      box(9,ceiling_height,light_level,1,2)
-      set(cat3("step_on_sector",x,y),lastsector)
-      ^step_on
-      movestep(0,2)
+      movestep(0,1)
+      inc("control_y_pos",1)
+      maybe_next_control_row
       sectortype(0,cellFinishedTag(x,y))
-      box(25,ceiling_height,light_level,1,1)
+      box(-100,ceiling_height,light_level,1,1)
       set(cat3("cellFinishedSector",x,y),lastsector)
       movestep(0,1)
+      inc("control_y_pos",1)
+      maybe_next_control_row
       sectortype(0,cellCommittedTag(x,y))
-      box(25,ceiling_height,light_level,1,1)
+      box(-100,ceiling_height,light_level,1,1)
       set(cat3("cellCommittedSector",x,y),lastsector)
       movestep(0,1)
+      inc("control_y_pos",1)
+      maybe_next_control_row
       sectortype(0,cellStartedTag(x,y))
-      box(25,ceiling_height,light_level,1,1)
+      box(-100,ceiling_height,light_level,1,1)
       set(cat3("cellStartedSector",x,y),lastsector)
-      movestep(-1,1)
+      movestep(0,1)
+      inc("control_y_pos",1)
     )
+  )
+  inc("control_row_count",1)
+  if(eq(mod(get("control_row_count"),2),0),
     ^row
-    movestep(2,0)
+    movestep(1,0)
     forcesector(get("raised_sector"))
     box(0,0,0,1,control_sector_y_size)
-    movestep(1,0)
+    !row)
+
+  ^row
+  movestep(2,0)
+  box(0,9,light_level,1,mul(row_count,col_count))
+  movestep(1,0)
+  !row
+  forvar("y",0,sub(row_count,1),
+    forvar("x",0,sub(col_count,1),
+      sectortype(0,stepTag(x,y))
+      floor(step_texture)
+      box(9,ceiling_height,light_level,1,1)
+      set(cat3("step_on_sector",x,y),lastsector)
+      movestep(0,1)
+    )
   )
+  ^row
+  movestep(1,0)
+  box(25,ceiling_height,0,1,mul(row_count,col_count))
 }
 
 /*
@@ -542,7 +594,7 @@ barrel_start(x,y) {
   movestep(8,0)
   sectortype(0,barrel_start_blocker_tag)
   if(or(lessthan(0,x),lessthan(0,y)),forcesector(get("barrel_start_blockerSector")))
-  ibox(25,ceiling_height,light_level,1,20)
+  ibox(-100,ceiling_height,light_level,1,20)
   if(and(eq(x,0),eq(y,0)),set("barrel_start_blockerSector",lastsector))
   sectortype(0,0)
   popsector
@@ -694,7 +746,7 @@ teleport_sector_with_front_line(x,y,line_type,line_tag) {
   linetype(line_type,line_tag) right(y)
   linetype(0,0) right(x)
   right(y)
-  rightsector(0,ceiling_height,light_level)
+  rightsector(-128,ceiling_height,light_level)
   rotright
   movestep(div(x,2),div(y,2))
   teleportlanding
@@ -873,7 +925,7 @@ stdiboxwithfrontline(x,y,type,tag) {
   linetype(type,tag) right(y)
   linetype(0,0) right(x)
   right(y)
-  innerrightsector(0,ceiling_height,light_level)
+  innerrightsector(-128,ceiling_height,light_level)
   rotright
 }
 
@@ -910,6 +962,9 @@ neg(n) {
 }
 mod(n,d) {
  sub(n,mul(div(n,d),d))
+}
+min(a,b) {
+  ifelse(lessthaneq(a,b),a,b)
 }
 rotated_angle(angle) {
   ifelse(eq(getorient,0),
