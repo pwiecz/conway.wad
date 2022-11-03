@@ -11,8 +11,8 @@ step_texture { "FLOOR7_2" }
 scroller_texture { "SLIME15" }
 playbox_texture { "FLAT5_2" }
 light_level { 181 }
-row_count {12}
-col_count {12}
+row_count {13}
+col_count {13}
 ceiling_height { add(mul(col_count,128),256) }
 /* Dimensions of the area performing the actual simulation
    Everything must be aligned to the blockmap boundaries -
