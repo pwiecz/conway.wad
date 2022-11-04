@@ -6,6 +6,35 @@ Patch format = 6
 
 Thing 9 (Mancubus - don't count it towards the kill count)
 Bits = SOLID+SHOOTABLE
+Alert sound = 0
+Attack sound = 0
+Pain sound = 0
+Action sound = 0
 
 [STRINGS]
 CC_MANCU = TOAD
+
+[CODEPTR]
+Frame 364 = NULL
+Frame 365 = NULL
+Frame 366 = NULL
+Frame 367 = NULL
+Frame 368 = NULL
+Frame 369 = NULL
+Frame 370 = NULL
+Frame 371 = NULL
+Frame 372 = NULL
+Frame 373 = NULL
+Frame 374 = NULL
+Frame 375 = NULL
+Frame 376 = NULL
+Frame 377 = NULL
+Frame 378 = NULL
+Frame 379 = NULL
+Frame 380 = NULL
+Frame 381 = NULL
+Frame 382 = NULL
+Frame 383 = NULL
+Frame 384 = NULL
+Frame 385 = NULL
+
