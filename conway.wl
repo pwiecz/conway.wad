@@ -362,9 +362,7 @@ maybe_next_control_row() {
     inc("control_row_count",1)
     if(eq(mod(get("control_row_count"),2),0),
       forcesector(get("raised_sector"))
-      mid(wall_texture)
       box(0,0,1,control_sector_y_size)
-      mid("-")
       movestep(1,0))
       !row)
 }
