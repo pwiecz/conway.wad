@@ -10,6 +10,8 @@ floor_texture { "SLIME15" }
 step_texture { "FLOOR7_2" }
 scroller_texture { "SLIME15" }
 playbox_texture { "FLAT5_2" }
+dead_cell_texture { "BIGDOOR7" }
+alive_cell_texture { "MARBFAC3" }
 light_level { 181 }
 row_count {13}
 col_count {13}
@@ -21,7 +23,10 @@ ceiling_height { add(mul(col_count,128),256) }
 simulator_x_size { mul(128,row_count) }
 -- 320 = 128+128+32+32
 simulator_y_size { mul(320,col_count) }
+simulator_floor_height { -64 }
+simulator_blocker_height { add(simulator_floor_height, 25) }
 gallery_x_size { 128 }
+-- we must fit 7 * row_count * col_count blocks in the control sector
 control_sector_y_size { min(div(add(mul(7,mul(row_count,col_count)),1),2),sub(simulator_y_size,1)) }
 -- dimensions of the main area where the player can move (not counting the vertical board)
 playbox_x_size{ add(mul(row_count,224),128) }
@@ -40,8 +45,8 @@ raisefloor { genfloor(trigger_wr,speed_slow,model_numeric,direction_down,floor_t
 lowerfloor { genfloor(trigger_wr,speed_slow,model_numeric,direction_up,floor_target_LnF,nochange,0) } -- 24809
 --lowerfloorturbo { genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnF,nochange,0) }
 --lowerfloortoceilingturbo {genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnC,nochange,0) }
-lowerfloortoceiling { 25065 }
-lowerflooronswitch { 24778 }
+lowerfloortoceiling { genfloor(trigger_wr,speed_slow,model_numeric,direction_up,floor_target_LnC,nochange,0) } -- 25057
+lowerflooronswitch { genfloor(trigger_s1,speed_slow,model_numeric,direction_up,floor_target_LnF,nochange,0) } -- 24770
 lineteleport { 267 }
 thingteleport { 269 }
 
@@ -61,7 +66,7 @@ main {
   yoff(0)
 
   ^origin
-  straight(add(add(simulator_x_size,gallery_x_size),1))
+  movestep(add(add(simulator_x_size,gallery_x_size),1),0)
   control_sector
 
   ^gallery_position
@@ -89,8 +94,8 @@ main {
   impassable
   floor(scroller_texture)
   sectortype(0,$scroll_north)
-  leftsector(-128,ceiling_height,light_level)
-  set("scrollingSector",lastsector)
+  leftsector(simulator_floor_height,ceiling_height,light_level)
+  set("scrolling_sector",lastsector)
 
   ^origin
 
@@ -111,7 +116,7 @@ main {
   ^checkers
   movestep(0,mul(128,col_count))
 
-  !aliveCells
+  !alive_cells
   forvar("x",0,sub(col_count,1),
     !column
     forvar("y",0,sub(row_count,1),
@@ -123,7 +128,7 @@ main {
     ^column
     movestep(0,128)
   )
-  ^aliveCells  
+  ^alive_cells  
   movestep(0,mul(128,col_count))
 
   !ladders
@@ -141,7 +146,7 @@ main {
   ^ladders
   movestep(0,mul(32,col_count))
 
-  !cellsFinished
+  !cells_finished
   forvar("x",0,sub(col_count,1),
     !column
     forvar("y",0,sub(row_count,1),
@@ -153,10 +158,10 @@ main {
     ^column
     movestep(0,32)
   )
-  ^cellsFinished
+  ^cells_finished
   movestep(mul(32,row_count),0)
 
-  !waitNbrsCommitted
+  !wait_nbrs_committed
   forvar("x",0,sub(col_count,1),
     !column
     forvar("y",0,sub(row_count,1),
@@ -168,10 +173,10 @@ main {
     ^column
     movestep(0,32)
   )
-  ^waitNbrsCommitted
+  ^wait_nbrs_committed
   movestep(mul(32,row_count),0)
 
-  !waitNbrsStarted
+  !wait_nbrs_started
   forvar("x",0,sub(col_count,1),
     !column
     forvar("y",0,sub(row_count,1),
@@ -183,7 +188,7 @@ main {
     ^column
     movestep(0,32)
   )
-  ^waitNbrsStarted
+  ^wait_nbrs_started
   movestep(mul(32,row_count),0)
 
   !barrels
@@ -239,7 +244,7 @@ main {
     !column
     forvar("y",0,sub(row_count,1),
       forcesector(step_on_sector(x,y))
-      linetype(lowerfloor,cellDeadBlockerTag(x,y))
+      linetype(lowerfloor,cell_dead_blocker_tag(x,y))
       ibox(0,0,0,128,128)
       popsector
       movestep(224,0)
@@ -251,8 +256,8 @@ main {
 
   ^vertical_board_position
   forvar("y",0,sub(row_count,1),
-    bot("MARBFAC3")
-    riserstep(y,0,0,"MARBFAC3")
+    bot(alive_cell_texture)
+    riserstep(y,0,0,alive_cell_texture)
     movestep(128,0)
   )
   ^vertical_board_position
@@ -260,9 +265,9 @@ main {
   forvar("x",0,sub(col_count,1),
     !column
     forvar("y",0,sub(row_count,1),
-      riserstep(y,mul(x,128),marbTag(x,y),"BIGDOOR7")
+      riserstep(y,mul(x,128),marb_tag(x,y),dead_cell_texture)
       movestep(0,4)
-      riserstep(y,mul(add(x,1),128),0,"MARBFAC3")
+      riserstep(y,mul(add(x,1),128),0,alive_cell_texture)
       movestep(128,-4)
     )
     ^column
@@ -344,11 +349,12 @@ maybe_next_control_row() {
  * Make a "raised_sector" with high floor neighbour all of the sectors used for blocking
  * barrel and mancubus movements. So that we can instantly move them up and down.
  * Also contains "low_ceiling_sector" used for lowering "step_on_sector" to a low (but not zero)
- * position using move-floor-to-lowest-neighbour-ceiling action.
+ * position using move-floor-to-lowest-neighbour-ceiling action. It's also used for lowering ceiling
+ * over the step_on_sectors to prevent user from entering them during the simulation.
  */
 control_sector() {
   sectortype(0,0)
-  box(-100,ceiling_height,light_level,1,control_sector_y_size)
+  box(simulator_blocker_height,ceiling_height,light_level,1,control_sector_y_size)
   set("raised_sector",lastsector)
   movestep(1,0)
   set("control_y_pos",0)
@@ -357,45 +363,45 @@ control_sector() {
   forvar("y",0,sub(row_count,1),
     forvar("x",0,sub(col_count,1),
       maybe_next_control_row
-      sectortype(0,cellDeadBlockerTag(x,y))
-      box(-100,ceiling_height,light_level,1,1)
-      set(cat3("cellDeadBlockerSector",x,y),lastsector)
+      sectortype(0,cell_dead_blocker_tag(x,y))
+      box(simulator_blocker_height,ceiling_height,light_level,1,1)
+      set(cat3("cell_dead_blocker_sector",x,y),lastsector)
       movestep(0,1)
       inc("control_y_pos",1)
       maybe_next_control_row
-      sectortype(0,cellAliveBlockerTag(x,y))
-      box(-100,ceiling_height,light_level,1,1)
-      set(cat3("cellAliveBlockerSector",x,y),lastsector)
+      sectortype(0,cell_alive_blocker_tag(x,y))
+      box(simulator_blocker_height,ceiling_height,light_level,1,1)
+      set(cat3("cell_alive_blocker_sector",x,y),lastsector)
       movestep(0,1)
       inc("control_y_pos",1)
       maybe_next_control_row
-      sectortype(0,cellKilledBlockerTag(x,y))
-      box(-128,ceiling_height,light_level,1,1)
-      set(cat3("cellKilledBlockerSector",x,y),lastsector)
+      sectortype(0,cell_killed_blocker_tag(x,y))
+      box(simulator_floor_height,ceiling_height,light_level,1,1)
+      set(cat3("cell_killed_blocker_sector",x,y),lastsector)
       movestep(0,1)
       inc("control_y_pos",1)
       maybe_next_control_row
-      sectortype(0,cellRevivedBlockerTag(x,y))
-      box(-100,ceiling_height,light_level,1,1)
-      set(cat3("cellRevivedBlockerSector",x,y),lastsector)
+      sectortype(0,cell_revived_blocker_tag(x,y))
+      box(simulator_blocker_height,ceiling_height,light_level,1,1)
+      set(cat3("cell_revived_blocker_sector",x,y),lastsector)
       movestep(0,1)
       inc("control_y_pos",1)
       maybe_next_control_row
-      sectortype(0,cellFinishedTag(x,y))
-      box(-100,ceiling_height,light_level,1,1)
-      set(cat3("cellFinishedSector",x,y),lastsector)
+      sectortype(0,cell_finished_tag(x,y))
+      box(simulator_blocker_height,ceiling_height,light_level,1,1)
+      set(cat3("cell_finished_sector",x,y),lastsector)
       movestep(0,1)
       inc("control_y_pos",1)
       maybe_next_control_row
-      sectortype(0,cellCommittedTag(x,y))
-      box(-100,ceiling_height,light_level,1,1)
-      set(cat3("cellCommittedSector",x,y),lastsector)
+      sectortype(0,cell_committed_tag(x,y))
+      box(simulator_blocker_height,ceiling_height,light_level,1,1)
+      set(cat3("cell_committed_sector",x,y),lastsector)
       movestep(0,1)
       inc("control_y_pos",1)
       maybe_next_control_row
-      sectortype(0,cellStartedTag(x,y))
-      box(-100,ceiling_height,light_level,1,1)
-      set(cat3("cellStartedSector",x,y),lastsector)
+      sectortype(0,cell_started_tag(x,y))
+      box(simulator_blocker_height,ceiling_height,light_level,1,1)
+      set(cat3("cell_started_sector",x,y),lastsector)
       movestep(0,1)
       inc("control_y_pos",1)
     )
@@ -415,7 +421,7 @@ control_sector() {
   !row
   forvar("y",0,sub(row_count,1),
     forvar("x",0,sub(col_count,1),
-      sectortype(0,stepTag(x,y))
+      sectortype(0,step_tag(x,y))
       floor(step_texture)
       box(9,ceiling_height,light_level,1,1)
       set(cat3("step_on_sector",x,y),lastsector)
@@ -442,39 +448,39 @@ control_sector() {
  */
 check_ladder_for_cell(x, y) {
   movestep(10,6)
-  lineleft(20,0,startCheckTag(x,y))
+  lineleft(20,0,start_check_tag(x,y))
   fori(0, 6,
     checkLadderStep(x, y, i, 0)
   )
   movestep(1,0)
-  lineright(20,thingteleport,killCellTag(x,y))
+  lineright(20,thingteleport,kill_cell_tag(x,y))
 
   fori(1,7,
     checkLadderStep(x, y, i, 1)
   )
   movestep(1,0)
-  lineright(20,thingteleport,killCellTag(x,y))
+  lineright(20,thingteleport,kill_cell_tag(x,y))
 
   fori(2,7,
     checkLadderStep(x, y, i, 2)
   )
   movestep(1,0)
-  lineright(20,thingteleport,keepCellTag(x,y))
+  lineright(20,thingteleport,keep_cell_tag(x,y))
 
   fori(3,7,
     checkLadderStep(x, y, i, 3)
   )
   movestep(1,0)
-  lineright(20,thingteleport,reviveCellTag(x,y))
+  lineright(20,thingteleport,revive_cell_tag(x,y))
 }
 
 checkLadderStep(x, y, nbr_ix, nbrCnt) {
   if(lessthaneq(1,nbrCnt),
     movestep(1,0)
-    lineleft(20,0,checkeeOkLineTag(x,y,sub(nbr_ix,1),sub(nbrCnt,1)))
+    lineleft(20,0,checkee_ok_line_tag(x,y,sub(nbr_ix,1),sub(nbrCnt,1)))
   )
   movestep(1,0)
-  lineright(20,lineteleport,checkeeLineTag(x,y,nbr_ix,nbrCnt))
+  lineright(20,lineteleport,checkee_line_tag(x,y,nbr_ix,nbrCnt))
 }
 
 /*
@@ -498,30 +504,30 @@ checker_for_cell(x, y) {
     !nbrColumn
     forvar("row",0,3,
       movestep(10,0)
-      lineleft(2,0,checkerLineTag(x,y,get("nbr_ix"),0))
+      lineleft(2,0,checker_line_tag(x,y,get("nbr_ix"),0))
       movestep(1,0)
       ifelse(eq(get("nbr_ix"),7),
-        lineright(2,thingteleport,get(cat2("killCell",invNeighbourString(x,y,get("nbr_ix"))))),
-        lineright(2,lineteleport,checkerOkLineTag(x,y,get("nbr_ix"),0))
+        lineright(2,thingteleport,get(cat2("kill_cell",inv_nbr_string(x,y,get("nbr_ix"))))),
+        lineright(2,lineteleport,checker_ok_line_tag(x,y,get("nbr_ix"),0))
       )
       movestep(1,0)
-      lineleft(2,0,checkerLineTag(x,y,get("nbr_ix"),1))
+      lineleft(2,0,checker_line_tag(x,y,get("nbr_ix"),1))
       movestep(1,0)
       ifelse(eq(get("nbr_ix"),7),
-        lineright(2,thingteleport,get(cat2("keepCell",invNeighbourString(x,y,get("nbr_ix"))))),
-        lineright(2,lineteleport,checkerOkLineTag(x,y,get("nbr_ix"),1))
+        lineright(2,thingteleport,get(cat2("keep_cell",inv_nbr_string(x,y,get("nbr_ix"))))),
+        lineright(2,lineteleport,checker_ok_line_tag(x,y,get("nbr_ix"),1))
       )
       movestep(1,0)
-      lineleft(2,0,checkerLineTag(x,y,get("nbr_ix"),2))
+      lineleft(2,0,checker_line_tag(x,y,get("nbr_ix"),2))
       movestep(1,0)
       ifelse(eq(get("nbr_ix"),7),
-        lineright(2,thingteleport,get(cat2("reviveCell",invNeighbourString(x,y,get("nbr_ix"))))),
-        lineright(2,lineteleport,checkerOkLineTag(x,y,get("nbr_ix"),2))
+        lineright(2,thingteleport,get(cat2("revive_cell",inv_nbr_string(x,y,get("nbr_ix"))))),
+        lineright(2,lineteleport,checker_ok_line_tag(x,y,get("nbr_ix"),2))
       )
       movestep(1,0)
-      lineleft(2,0,checkerLineTag(x,y,get("nbr_ix"),3))
+      lineleft(2,0,checker_line_tag(x,y,get("nbr_ix"),3))
       movestep(1,0)
-      lineright(2,thingteleport,get(cat2("killCell",invNeighbourString(x,y,get("nbr_ix")))))
+      lineright(2,thingteleport,get(cat2("kill_cell",inv_nbr_string(x,y,get("nbr_ix")))))
       movestep(11,0)
       inc("nbr_ix",1)
     )
@@ -531,23 +537,23 @@ checker_for_cell(x, y) {
   ^nbrs
   movestep(56,50)
   mancubus
-  thingangle(rotated_angle(angle_west))
+  thingangle(rotated_angle(angle_north))
   movestep(-4,-10)
-  lineleft(20,0,cellDeadTag(x,y))
+  lineleft(20,0,cell_dead_tag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloortoceiling,stepTag(x,y))
+  lineright(20,lowerfloortoceiling,step_tag(x,y))
   movestep(1,0)
-  lineright(20,raisefloor,cellRevivedBlockerTag(x,y))
+  lineright(20,raisefloor,cell_revived_blocker_tag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloor,cellKilledBlockerTag(x,y))
+  lineright(20,lowerfloor,cell_killed_blocker_tag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloor,marbTag(x,y))
+  lineright(20,lowerfloor,marb_tag(x,y))
   movestep(2,0)
-  lineright(20,raisefloor,cellAliveBlockerTag(x,y))
+  lineright(20,raisefloor,cell_alive_blocker_tag(x,y))
   movestep(1,0)
-  lineright(20,lineteleport,cellAliveTag(x,y))
+  lineright(20,lineteleport,cell_alive_tag(x,y))
   movestep(46,0)
-  forcesector(cellDeadBlockerSector(x,y))
+  forcesector(cell_dead_blocker_sector(x,y))
   ibox(0,0,0,1,20)
   popsector
 }
@@ -559,21 +565,21 @@ checker_for_cell(x, y) {
 alive_cell_block(x,y) {
   sectortype(0,0)
   movestep(48,16)
-  lineleft(96,0,cellAliveTag(x,y))
+  lineleft(96,0,cell_alive_tag(x,y))
   movestep(1,0)
-  lineright(96,raisefloor,stepTag(x,y))
+  lineright(96,raisefloor,step_tag(x,y))
   movestep(1,0)
-  lineright(96,raisefloor,cellKilledBlockerTag(x,y))
+  lineright(96,raisefloor,cell_killed_blocker_tag(x,y))
   movestep(1,0)
-  lineright(96,lowerfloor,cellRevivedBlockerTag(x,y))
+  lineright(96,lowerfloor,cell_revived_blocker_tag(x,y))
   movestep(1,0)
-  lineright(96,raisefloor,marbTag(x,y))
+  lineright(96,raisefloor,marb_tag(x,y))
   movestep(2,0)
-  lineright(96,raisefloor,cellDeadBlockerTag(x,y))
+  lineright(96,raisefloor,cell_dead_blocker_tag(x,y))
   movestep(1,0)
-  lineright(96,lineteleport,cellDeadTag(x,y))
+  lineright(96,lineteleport,cell_dead_tag(x,y))
   movestep(46,0)
-  forcesector(cellAliveBlockerSector(x,y))
+  forcesector(cell_alive_blocker_sector(x,y))
   ibox(0,0,0,1,96)
   popsector
 }
@@ -588,14 +594,14 @@ barrel_start(x,y) {
   thing
   movestep(1,-10)
   -- lower ceiling over step-on buttons to prevent user from messing up the board during simulation
-  lineright(20,lowerceiling,stepTag(x,y))
+  lineright(20,lowerceiling,step_tag(x,y))
   movestep(1,0)
-  lineright(20,thingteleport,keepCellTag(x,y))
+  lineright(20,thingteleport,keep_cell_tag(x,y))
   movestep(8,0)
   sectortype(0,barrel_start_blocker_tag)
-  if(or(lessthan(0,x),lessthan(0,y)),forcesector(get("barrel_start_blockerSector")))
-  ibox(-100,ceiling_height,light_level,1,20)
-  if(and(eq(x,0),eq(y,0)),set("barrel_start_blockerSector",lastsector))
+  if(or(lessthan(0,x),lessthan(0,y)),forcesector(get("barrel_start_blocker_sector")))
+  ibox(simulator_blocker_height,ceiling_height,light_level,1,20)
+  if(and(eq(x,0),eq(y,0)),set("barrel_start_blocker_sector",lastsector))
   sectortype(0,0)
   popsector
 }
@@ -612,48 +618,48 @@ barrel_start(x,y) {
  */
 cell_finished_block(x, y) {
   movestep(9,10)
-  sectortype(0,killCellTag(x,y))
-  teleport_sector_with_front_line(2,2,raisefloor,cellCommittedTag(x,y))
+  sectortype(0,kill_cell_tag(x,y))
+  teleport_sector_with_front_line(2,2,raisefloor,cell_committed_tag(x,y))
   movestep(0,2)
-  sectortype(0,keepCellTag(x,y))
-  teleport_sector_with_front_line(2,8,lowerfloor,cellFinishedTag(x,y))
+  sectortype(0,keep_cell_tag(x,y))
+  teleport_sector_with_front_line(2,8,lowerfloor,cell_finished_tag(x,y))
   movestep(0,8)
-  sectortype(0,reviveCellTag(x,y))
-  teleport_sector_with_front_line(2,2,raisefloor,cellCommittedTag(x,y))
+  sectortype(0,revive_cell_tag(x,y))
+  teleport_sector_with_front_line(2,2,raisefloor,cell_committed_tag(x,y))
   movestep(0,-10)
-  forcesector(get("scrollingSector"))
+  forcesector(get("scrolling_sector"))
   invbox(0,0,0,2,12)
   movestep(13,2)
-  !allFinished
+  !all_finished
   forvar("nbr_ix",0,7,
-    forcesector(cellNbrFinishedSector(x,y,get("nbr_ix")))
+    forcesector(cell_nbr_finished_sector(x,y,get("nbr_ix")))
     xoff(mod(get("nbr_ix"),2))
     box(0,0,0,1,1)
     movestep(0,1)
   )
-  ^allFinished
-  forcesector(get("scrollingSector"))
+  ^all_finished
+  forcesector(get("scrolling_sector"))
   invbox(0,0,0,1,8)
   xoff(0)
   movestep(-9,-11)
   
-  lineright(2,raisefloor,cellDeadBlockerTag(x,y))
+  lineright(2,raisefloor,cell_dead_blocker_tag(x,y))
   movestep(1,0)
-  lineright(2,lowerfloor,cellAliveBlockerTag(x,y))
+  lineright(2,lowerfloor,cell_alive_blocker_tag(x,y))
   movestep(11,0)
-  forcesector(cellKilledBlockerSector(x,y))
+  forcesector(cell_killed_blocker_sector(x,y))
   ibox(0,0,0,1,2)
   popsector
   movestep(-12,28)
-  lineright(2,raisefloor,cellAliveBlockerTag(x,y))
+  lineright(2,raisefloor,cell_alive_blocker_tag(x,y))
   movestep(1,0)
-  lineright(2,lowerfloor,cellDeadBlockerTag(x,y))
+  lineright(2,lowerfloor,cell_dead_blocker_tag(x,y))
   movestep(11,0)
-  forcesector(cellRevivedBlockerSector(x,y))
+  forcesector(cell_revived_blocker_sector(x,y))
   ibox(0,0,0,1,2)
   popsector
   movestep(-9,-23)
-  lineright(20,lineteleport,allNbrsFinishedTag(x,y))
+  lineright(20,lineteleport,all_nbrs_finished_tag(x,y))
 }
 
 /*
@@ -662,50 +668,50 @@ cell_finished_block(x, y) {
  */
 wait_all_nbrs_committed_block(x,y) {
   movestep(10, 6)
-  lineleft(20,0,allNbrsFinishedTag(x,y))
+  lineleft(20,0,all_nbrs_finished_tag(x,y))
   movestep(1,0)
-  lineright(20,raisefloor,cellStartedTag(x,y))
+  lineright(20,raisefloor,cell_started_tag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloor,cellCommittedTag(x,y))
+  lineright(20,lowerfloor,cell_committed_tag(x,y))
   movestep(11,6)
-  !allCommitted
+  !all_committed
   forvar("nbr_ix",0,7,
-    forcesector(cellNbrCommittedSector(x,y,get("nbr_ix")))
+    forcesector(cell_nbr_committed_sector(x,y,get("nbr_ix")))
     xoff(mod(get("nbr_ix"),2))
     box(0,0,0,1,1)
     movestep(0,1)
   )
-  ^allCommitted
-  forcesector(get("scrollingSector"))
+  ^all_committed
+  forcesector(get("scrolling_sector"))
   invbox(0,0,0,1,8)
   xoff(0)
   movestep(-9,-6)
 
-  lineright(20,lineteleport,allNbrsCommittedTag(x,y))
+  lineright(20,lineteleport,all_nbrs_committed_tag(x,y))
 }
 
 wait_all_nbrs_started_block(x,y) {
   movestep(10, 6)
-  lineleft(20,0,allNbrsCommittedTag(x,y))
+  lineleft(20,0,all_nbrs_committed_tag(x,y))
   movestep(1,0)
-  lineright(20,raisefloor,cellFinishedTag(x,y))
+  lineright(20,raisefloor,cell_finished_tag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloor,cellStartedTag(x,y))
+  lineright(20,lowerfloor,cell_started_tag(x,y))
   movestep(11,6)
-  !allStarted
+  !all_started
   forvar("nbr_ix",0,7,
-    forcesector(cellNbrStartedSector(x,y,get("nbr_ix")))
+    forcesector(cell_nbr_started_sector(x,y,get("nbr_ix")))
     xoff(mod(get("nbr_ix"),2))
     box(0,0,0,1,1)
     movestep(0,1)
   )
-  ^allStarted
-  forcesector(get("scrollingSector"))
+  ^all_started
+  forcesector(get("scrolling_sector"))
   invbox(0,0,0,1,8)
   xoff(0)
   movestep(-9,-6)
 
-  lineright(20,lineteleport,startCheckTag(x,y))
+  lineright(20,lineteleport,start_check_tag(x,y))
 }
 
 /*
@@ -716,7 +722,7 @@ wait_all_nbrs_started_block(x,y) {
 lineright(len,type,tag) {
   !line_start_position
   bot("-")
-  forcesector(get("scrollingSector"))
+  forcesector(get("scrolling_sector"))
   linetype(type,tag) step(0,len)
   linetype(0,0) step(0,neg(len))
   rightsector(0,0,0)
@@ -729,7 +735,7 @@ lineright(len,type,tag) {
 lineleft(len,type,tag) {
   !line_start_position
   bot("-")
-  forcesector(get("scrollingSector"))
+  forcesector(get("scrolling_sector"))
   movestep(0,len)
   linetype(type,tag) step(0,neg(len))
   linetype(0,0) step(0,len)
@@ -746,7 +752,7 @@ teleport_sector_with_front_line(x,y,line_type,line_tag) {
   linetype(line_type,line_tag) right(y)
   linetype(0,0) right(x)
   right(y)
-  rightsector(-128,ceiling_height,light_level)
+  rightsector(simulator_floor_height,ceiling_height,light_level)
   rotright
   movestep(div(x,2),div(y,2))
   teleportlanding
@@ -758,7 +764,7 @@ teleport_sector_with_front_line(x,y,line_type,line_tag) {
  * Generate string in format "X,Y" where X and Y are coordinates of neighbour cell of x and y.
  * nbr_ix is the index of the neighbours - 0 being bottom-left, and 7 being top-right.
  */
-neighbourString(x, y, nbr_ix) {
+nbr_string(x, y, nbr_ix) {
   ifelse(eq(nbr_ix,0),
     cat2(subx1(x),suby1(y)),
     ifelse(eq(nbr_ix,1),
@@ -775,8 +781,8 @@ neighbourString(x, y, nbr_ix) {
                 cat2(addx1(x),y),
 		cat2(addx1(x),addy1(y)))))))))
 }
-invNeighbourString(x, y, nbr_ix) {
-  neighbourString(x,y,sub(7,nbr_ix))
+inv_nbr_string(x, y, nbr_ix) {
+  nbr_string(x,y,sub(7,nbr_ix))
 }
 subx1(x) {
   mod(add(x,sub(col_count,1)),col_count)
@@ -795,29 +801,28 @@ initialize_tags {
   set("barrel_start_blocker",newtag)
   forvar("x",0,sub(col_count,1),
     forvar("y",0,sub(row_count,1),
-      set(cat3("killCell",x,y),newtag)
-      set(cat3("keepCell",x,y),newtag)
-      set(cat3("reviveCell",x,y),newtag)
-      set(cat3("cellDead",x,y),newtag)
-      set(cat3("cellDeadBlocker",x,y),newtag)
-      set(cat3("cellKilledBlocker",x,y),newtag)
-      set(cat3("cellAlive",x,y),newtag)
-      set(cat3("cellAliveBlocker",x,y),newtag)
-      set(cat3("cellRevivedBlocker",x,y),newtag)
-      set(cat3("cellFinished",x,y),newtag)
-      set(cat3("cellStarted",x,y),newtag)
-      set(cat3("cellCommitted",x,y),newtag)
-      set(cat3("startNextTurn",x,y),newtag)
-      set(cat3("startCheck",x,y),newtag)
-      set(cat3("allNbrsFinished",x,y),newtag)
-      set(cat3("allNbrsCommitted",x,y),newtag)
+      set(cat3("kill_cell",x,y),newtag)
+      set(cat3("keep_cell",x,y),newtag)
+      set(cat3("revive_cell",x,y),newtag)
+      set(cat3("cell_dead",x,y),newtag)
+      set(cat3("cell_dead_blocker",x,y),newtag)
+      set(cat3("cell_killed_blocker",x,y),newtag)
+      set(cat3("cell_alive",x,y),newtag)
+      set(cat3("cell_alive_blocker",x,y),newtag)
+      set(cat3("cell_revived_blocker",x,y),newtag)
+      set(cat3("cell_finished",x,y),newtag)
+      set(cat3("cell_started",x,y),newtag)
+      set(cat3("cell_committed",x,y),newtag)
+      set(cat3("start_check",x,y),newtag)
+      set(cat3("all_nbrs_finished",x,y),newtag)
+      set(cat3("all_nbrs_committed",x,y),newtag)
       set(cat3("marb",x,y),newtag)
       set(cat3("step",x,y),newtag)
       forvar("nbr_ix",0,7,
         forvar("nbr_count",0,3,
           set(cat5("check",get("x"),get("y"),get("nbr_ix"),get("nbr_count")),newtag)
           if(and(lessthan(get("nbr_count"),3),lessthan(get("nbr_ix"),7)),
-            set(cat5("checkOk",get("x"),get("y"),get("nbr_ix"),get("nbr_count")),newtag))
+            set(cat5("check_ok",get("x"),get("y"),get("nbr_ix"),get("nbr_count")),newtag))
         )
       )
     )
@@ -827,91 +832,88 @@ initialize_tags {
 barrel_start_blocker_tag {
   get("barrel_start_blocker")
 }
-checkeeLineTag(x,y,nbr_ix,nbr_count) {
-  get(cat4("check",neighbourString(x,y,nbr_ix),nbr_ix,nbr_count))
+checkee_line_tag(x,y,nbr_ix,nbr_count) {
+  get(cat4("check",nbr_string(x,y,nbr_ix),nbr_ix,nbr_count))
 }
-checkeeOkLineTag(x,y,nbr_ix,nbr_count) {
-  get(cat4("checkOk",neighbourString(x,y,nbr_ix),nbr_ix,nbr_count))
+checkee_ok_line_tag(x,y,nbr_ix,nbr_count) {
+  get(cat4("check_ok",nbr_string(x,y,nbr_ix),nbr_ix,nbr_count))
 }
-checkerLineTag(x,y,nbr_ix,nbr_count) {
+checker_line_tag(x,y,nbr_ix,nbr_count) {
   get(cat5("check",x,y,nbr_ix,nbr_count))
 }
-checkerOkLineTag(x,y,nbr_ix,nbr_count) {
-  get(cat5("checkOk",x,y,nbr_ix,nbr_count))
+checker_ok_line_tag(x,y,nbr_ix,nbr_count) {
+  get(cat5("check_ok",x,y,nbr_ix,nbr_count))
 }
-killCellTag(x,y) {
-  get(cat3("killCell",x,y))
+kill_cell_tag(x,y) {
+  get(cat3("kill_cell",x,y))
 }
-keepCellTag(x,y) {
-  get(cat3("keepCell",x,y))
+keep_cell_tag(x,y) {
+  get(cat3("keep_cell",x,y))
 }
-reviveCellTag(x,y) {
-  get(cat3("reviveCell",x,y))
+revive_cell_tag(x,y) {
+  get(cat3("revive_cell",x,y))
 }
-cellDeadTag(x,y) {
-  get(cat3("cellDead",x,y))
+cell_dead_tag(x,y) {
+  get(cat3("cell_dead",x,y))
 }
-cellDeadBlockerTag(x,y) {
-  get(cat3("cellDeadBlocker",x,y))
+cell_dead_blocker_tag(x,y) {
+  get(cat3("cell_dead_blocker",x,y))
 }
-cellKilledBlockerTag(x,y) {
-  get(cat3("cellKilledBlocker",x,y))
+cell_killed_blocker_tag(x,y) {
+  get(cat3("cell_killed_blocker",x,y))
 }
-cellAliveTag(x,y) {
-  get(cat3("cellAlive",x,y))
+cell_alive_tag(x,y) {
+  get(cat3("cell_alive",x,y))
 }
-cellAliveBlockerTag(x,y) {
-  get(cat3("cellAliveBlocker",x,y))
+cell_alive_blocker_tag(x,y) {
+  get(cat3("cell_alive_blocker",x,y))
 }
-cellRevivedBlockerTag(x,y) {
-  get(cat3("cellRevivedBlocker",x,y))
+cell_revived_blocker_tag(x,y) {
+  get(cat3("cell_revived_blocker",x,y))
 }
-startNextTurnTag(x,y) {
-  get(cat3("startNextTurn",x,y))
+start_check_tag(x,y) {
+  get(cat3("start_check",x,y))
 }
-startCheckTag(x,y) {
-  get(cat3("startCheck",x,y))
+all_nbrs_finished_tag(x,y) {
+  get(cat3("all_nbrs_finished",x,y))
 }
-allNbrsFinishedTag(x,y) {
-  get(cat3("allNbrsFinished",x,y))
+all_nbrs_committed_tag(x,y) {
+  get(cat3("all_nbrs_committed",x,y))
 }
-allNbrsCommittedTag(x,y) {
-  get(cat3("allNbrsCommitted",x,y))
+cell_finished_tag(x,y) {
+  get(cat3("cell_finished",x,y))
 }
-cellFinishedTag(x,y) {
-  get(cat3("cellFinished",x,y))
+cell_committed_tag(x,y) {
+  get(cat3("cell_committed",x,y))
 }
-cellCommittedTag(x,y) {
-  get(cat3("cellCommitted",x,y))
+cell_started_tag(x,y) {
+  get(cat3("cell_started",x,y))
 }
-cellStartedTag(x,y) {
-  get(cat3("cellStarted",x,y))
+cell_nbr_finished_sector(x,y,nbr_ix) {
+  get(cat2("cell_finished_sector",nbr_string(x,y,nbr_ix)))
 }
-cellNbrFinishedSector(x,y,nbr_ix) {
-  get(cat2("cellFinishedSector",neighbourString(x,y,nbr_ix)))
+cell_nbr_committed_sector(x,y,nbr_ix) {
+  get(cat2("cell_committed_sector",nbr_string(x,y,nbr_ix)))
 }
-cellNbrCommittedSector(x,y,nbr_ix) {
-  get(cat2("cellCommittedSector",neighbourString(x,y,nbr_ix)))
+cell_nbr_started_sector(x,y,nbr_ix) {
+  get(cat2("cell_started_sector",nbr_string(x,y,nbr_ix)))
 }
-cellNbrStartedSector(x,y,nbr_ix) {
-  get(cat2("cellStartedSector",neighbourString(x,y,nbr_ix)))
+cell_alive_blocker_sector(x,y) {
+  get(cat3("cell_alive_blocker_sector",x,y))
 }
-cellAliveBlockerSector(x,y) {
-  get(cat3("cellAliveBlockerSector",x,y))
+cell_revived_blocker_sector(x,y) {
+  get(cat3("cell_revived_blocker_sector",x,y))
 }
-cellRevivedBlockerSector(x,y) {
-  get(cat3("cellRevivedBlockerSector",x,y))
+cell_dead_blocker_sector(x,y) {
+  get(cat3("cell_dead_blocker_sector",x,y))
 }
-cellDeadBlockerSector(x,y) {
-  get(cat3("cellDeadBlockerSector",x,y))
+cell_killed_blocker_sector(x,y) {
+  get(cat3("cell_killed_blocker_sector",x,y))
 }
-cellKilledBlockerSector(x,y) {
-  get(cat3("cellKilledBlockerSector",x,y))
-}
-marbTag(x,y) {
+marb_tag(x,y) {
   get(cat3("marb",x,y))
 }
-stepTag(x,y) {
+step_tag(x,y) {
   get(cat3("step",x,y))
 }
 step_on_sector(x,y) {
@@ -925,7 +927,7 @@ stdiboxwithfrontline(x,y,type,tag) {
   linetype(type,tag) right(y)
   linetype(0,0) right(x)
   right(y)
-  innerrightsector(-128,ceiling_height,light_level)
+  innerrightsector(simulator_floor_height,ceiling_height,light_level)
   rotright
 }
 
