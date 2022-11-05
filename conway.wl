@@ -15,7 +15,12 @@ alive_cell_texture { "MARBFAC3" }
 light_level { 181 }
 row_count {13}
 col_count {13}
-ceiling_height { add(mul(col_count,128),256) }
+simulator_floor_height { 0 }
+simulator_blocker_height { add(simulator_floor_height, 25) }
+playbox_floor_height { add(simulator_floor_height,64) }
+lowered_step_height { add(playbox_floor_height,9) }
+raised_step_height { add(playbox_floor_height,25) }
+ceiling_height { add(playbox_floor_height,add(mul(col_count,128),256)) }
 /* Dimensions of the area performing the actual simulation
    Everything must be aligned to the blockmap boundaries -
    this way collision detection works reliably. E.g. mancubi are blocking
@@ -23,8 +28,6 @@ ceiling_height { add(mul(col_count,128),256) }
 simulator_x_size { mul(128,row_count) }
 -- 320 = 128+128+32+32
 simulator_y_size { mul(320,col_count) }
-simulator_floor_height { -64 }
-simulator_blocker_height { add(simulator_floor_height, 25) }
 gallery_x_size { 128 }
 -- we must fit 7 * row_count * col_count blocks in the control sector
 control_sector_y_size { min(div(add(mul(7,mul(row_count,col_count)),1),2),sub(simulator_y_size,1)) }
@@ -39,12 +42,14 @@ scroll_speed { 32 }
 barrel { setthing(2035) }
 direction_up { 1 }
 direction_down { 0 }
+raiseceiling { genceiling(trigger_wr,speed_slow,model_numeric,direction_down,ceiling_target_HnC,nochange,0) }
+raiseceilingtofloor { genceiling(trigger_wr,speed_slow,model_numeric,direction_down,ceiling_target_HnF,nochange,0) }
 lowerceiling { genceiling(trigger_wr,speed_slow,model_numeric,direction_up,ceiling_target_LnC,nochange,0) } -- 16617
 raisefloor { genfloor(trigger_wr,speed_slow,model_numeric,direction_down,floor_target_HnF,nochange,0) }-- 24617
---raisefloorturbo { genfloor(trigger_wr,speed_turbo,model_numeric,direction_up,floor_target_HnF,nochange,0) } -- 24697
+raisefloorturbo { genfloor(trigger_wr,speed_turbo,model_numeric,direction_up,floor_target_HnF,nochange,0) } -- 24697
 lowerfloor { genfloor(trigger_wr,speed_slow,model_numeric,direction_up,floor_target_LnF,nochange,0) } -- 24809
---lowerfloorturbo { genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnF,nochange,0) }
---lowerfloortoceilingturbo {genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnC,nochange,0) }
+lowerfloorturbo { genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnF,nochange,0) }
+lowerfloortoceilingturbo {genfloor(trigger_wr,speed_turbo,model_numeric,direction_down,floor_target_LnC,nochange,0) }
 lowerfloortoceiling { genfloor(trigger_wr,speed_slow,model_numeric,direction_up,floor_target_LnC,nochange,0) } -- 25057
 lowerflooronswitch { genfloor(trigger_s1,speed_slow,model_numeric,direction_up,floor_target_LnF,nochange,0) } -- 24770
 lineteleport { 267 }
@@ -80,7 +85,7 @@ main {
   mid("-")
   left(gallery_x_size)
   sectortype(0,0)
-  leftsector(0,ceiling_height,light_level)
+  leftsector(playbox_floor_height,ceiling_height,light_level)
 
   -- Close off the simulator sector
   ^playbox_position
@@ -96,6 +101,7 @@ main {
   sectortype(0,$scroll_north)
   leftsector(simulator_floor_height,ceiling_height,light_level)
   set("scrolling_sector",lastsector)
+  sectortype(0,0)
 
   ^origin
 
@@ -138,11 +144,27 @@ main {
       !cell
       check_ladder_for_cell(get("x"),get("y"))
       ^cell
-      movestep(128,0)
+      movestep(70,0)
     )
     ^column
     movestep(0, 32)
   )
+  ^ladders
+  movestep(sub(simulator_x_size,mul(23,row_count)),0)
+
+  forvar("x",0,sub(col_count,1),
+    !column
+    forvar("y",0,sub(row_count,1),
+      !cell
+      board_setter(get("x"),get("y"))
+      ^cell
+      movestep(23,0)
+    )
+    ^column
+    movestep(0, 32)
+  )
+  ^ladders
+  
   ^ladders
   movestep(0,mul(32,col_count))
 
@@ -224,7 +246,7 @@ main {
   xoff(49)
   bot("BROWN96")
   left(1)
-  leftsector(96,ceiling_height,light_level)
+  leftsector(add(playbox_floor_height,96),ceiling_height,light_level)
   turnaround
   yoff(0)
   xoff(0)
@@ -234,7 +256,7 @@ main {
   straight(vertical_board_x_size)
   sectortype(0,0)
   floor(playbox_texture)
-  leftsector(0,ceiling_height,light_level)
+  leftsector(playbox_floor_height,ceiling_height,light_level)
 
   ^playbox_position
 
@@ -244,7 +266,7 @@ main {
     !column
     forvar("y",0,sub(row_count,1),
       forcesector(step_on_sector(x,y))
-      linetype(lowerfloor,cell_dead_blocker_tag(x,y))
+      linetype(lowerfloortoceiling,set_cell_tag(x,y))--cell_dead_blocker_tag(x,y))
       ibox(0,0,0,128,128)
       popsector
       movestep(224,0)
@@ -257,7 +279,7 @@ main {
   ^vertical_board_position
   forvar("y",0,sub(row_count,1),
     bot(alive_cell_texture)
-    riserstep(y,0,0,alive_cell_texture)
+    riserstep(y,playbox_floor_height,0,alive_cell_texture)
     movestep(128,0)
   )
   ^vertical_board_position
@@ -265,9 +287,9 @@ main {
   forvar("x",0,sub(col_count,1),
     !column
     forvar("y",0,sub(row_count,1),
-      riserstep(y,mul(x,128),cell_killed_blocker_tag(x,y),dead_cell_texture)
+      riserstep(y,add(playbox_floor_height,mul(x,128)),cell_killed_blocker_tag(x,y),dead_cell_texture)
       movestep(0,4)
-      riserstep(y,mul(add(x,1),128),0,alive_cell_texture)
+      riserstep(y,add(playbox_floor_height,mul(add(x,1),128)),0,alive_cell_texture)
       movestep(128,-4)
     )
     ^column
@@ -275,10 +297,10 @@ main {
   )
 
   linetype(exit_w1_normal,0)
-  box(mul(128,col_count),ceiling_height,light_level,vertical_board_x_size, 32)
+  box(add(playbox_floor_height,mul(128,col_count)),ceiling_height,light_level,vertical_board_x_size, 32)
   movestep(0,32)
   floor("F_SKY1")
-  box(sub(mul(col_count,128),16),ceiling_height,light_level,vertical_board_x_size,128)
+  box(add(playbox_floor_height,sub(mul(col_count,128),16)),ceiling_height,light_level,vertical_board_x_size,128)
 }
 
 /*
@@ -328,6 +350,7 @@ riserstep(y,floor,tag,tex) {
   right(4)
   sectortype(0,tag)
   rightsector(floor,ceiling_height,light_level)
+  sectortype(0,0)
   rotright
 }
 
@@ -339,7 +362,9 @@ maybe_next_control_row() {
     inc("control_row_count",1)
     if(eq(mod(get("control_row_count"),2),0),
       forcesector(get("raised_sector"))
-      box(0,0,0,1,control_sector_y_size)
+      mid(wall_texture)
+      box(0,0,1,control_sector_y_size)
+      mid("-")
       movestep(1,0))
       !row)
 }
@@ -348,8 +373,9 @@ maybe_next_control_row() {
  * Make a "raised_sector" with high floor neighbour all of the sectors used for blocking
  * barrel and mancubus movements. So that we can instantly move them up and down.
  * Also contains "low_ceiling_sector" used for lowering "step_on_sector" to a low (but not zero)
- * position using move-floor-to-lowest-neighbour-ceiling action. It's also used for lowering ceiling
- * over the step_on_sectors to prevent user from entering them during the simulation.
+ * position using move-floor-to-lowest-neighbour-ceiling action.
+ * Also contains sectors for controlling setting up the board and disabling the set-up function
+ * once the simulation start.
  */
 control_sector() {
   sectortype(0,0)
@@ -405,31 +431,53 @@ control_sector() {
       inc("control_y_pos",1)
     )
   )
+  sectortype(0,0)
   inc("control_row_count",1)
   if(eq(mod(get("control_row_count"),2),0),
     ^row
     movestep(1,0)
     forcesector(get("raised_sector"))
     box(0,0,0,1,control_sector_y_size)
-    !row)
+    !row
+  )
 
   ^row
-  movestep(2,0)
-  box(0,9,light_level,1,mul(row_count,col_count))
+  movestep(1,0)
+
+  -- A sector with ceiling at the height of the lowered board step, used as a target
+  -- for lowering it down
+  box(playbox_floor_height,lowered_step_height,light_level,1,mul(row_count,col_count))
   movestep(1,0)
   !row
+  floor(step_texture)
   forvar("y",0,sub(row_count,1),
     forvar("x",0,sub(col_count,1),
       sectortype(0,step_tag(x,y))
-      floor(step_texture)
-      box(9,ceiling_height,light_level,1,1)
+      box(lowered_step_height,ceiling_height,light_level,1,1)
       set(cat3("step_on_sector",x,y),lastsector)
       movestep(0,1)
     )
   )
   ^row
   movestep(1,0)
-  box(25,ceiling_height,0,1,mul(row_count,col_count))
+
+  sectortype(0,0)
+  box(raised_step_height,ceiling_height,light_level,1,mul(row_count,col_count))
+  movestep(1,0)
+  box(simulator_blocker_height,ceiling_height,light_level,1,mul(row_count,col_count))
+  movestep(1,0)
+  sectortype(0,setter_control_tag)
+  box(simulator_floor_height,simulator_floor_height,light_level,1,mul(row_count,col_count))
+  movestep(1,0)
+  forvar("y",0,sub(row_count,1),
+    forvar("x",0,sub(col_count,1),
+      sectortype(0,set_cell_tag(x,y))
+      box(simulator_blocker_height,ceiling_height,light_level,1,1)
+      set(cat3("set_cell_sector",x,y),lastsector)
+      movestep(0,1)
+    )
+  )
+  sectortype(0,0)
 }
 
 /*
@@ -449,37 +497,50 @@ check_ladder_for_cell(x, y) {
   movestep(10,6)
   lineleft(20,0,start_check_tag(x,y))
   fori(0, 6,
-    checkLadderStep(x, y, i, 0)
+    check_ladder_step(x, y, i, 0)
   )
   movestep(1,0)
   lineright(20,thingteleport,kill_cell_tag(x,y))
 
   fori(1,7,
-    checkLadderStep(x, y, i, 1)
+    check_ladder_step(x, y, i, 1)
   )
   movestep(1,0)
   lineright(20,thingteleport,kill_cell_tag(x,y))
 
   fori(2,7,
-    checkLadderStep(x, y, i, 2)
+    check_ladder_step(x, y, i, 2)
   )
   movestep(1,0)
   lineright(20,thingteleport,keep_cell_tag(x,y))
 
   fori(3,7,
-    checkLadderStep(x, y, i, 3)
+    check_ladder_step(x, y, i, 3)
   )
   movestep(1,0)
   lineright(20,thingteleport,revive_cell_tag(x,y))
 }
 
-checkLadderStep(x, y, nbr_ix, nbrCnt) {
+check_ladder_step(x, y, nbr_ix, nbrCnt) {
   if(lessthaneq(1,nbrCnt),
     movestep(1,0)
     lineleft(20,0,checkee_ok_line_tag(x,y,sub(nbr_ix,1),sub(nbrCnt,1)))
   )
   movestep(1,0)
   lineright(20,lineteleport,checkee_line_tag(x,y,nbr_ix,nbrCnt))
+}
+
+board_setter(x,y) {
+  movestep(10,16)
+  barrel
+  thing
+  movestep(10,-10)
+  forcesector(set_cell_sector(x,y))
+  ibox(simulator_blocker_height,ceiling_height,light_level,1,20)
+  popsector
+  movestep(-9,0)
+  lineright(20,lowerfloor,cell_dead_blocker_tag(x,y))
+  movestep(11,0)
 }
 
 /*
@@ -540,7 +601,7 @@ checker_for_cell(x, y) {
   movestep(-4,-10)
   lineleft(20,0,cell_dead_tag(x,y))
   movestep(1,0)
-  lineright(20,lowerfloortoceiling,step_tag(x,y))
+  lineright(20,lowerfloortoceilingturbo,step_tag(x,y))
   movestep(1,0)
   lineright(20,raisefloor,cell_revived_blocker_tag(x,y))
   movestep(1,0)
@@ -564,7 +625,7 @@ alive_cell_block(x,y) {
   movestep(48,16)
   lineleft(96,0,cell_alive_tag(x,y))
   movestep(1,0)
-  lineright(96,raisefloor,step_tag(x,y))
+  lineright(96,raisefloorturbo,step_tag(x,y))
   movestep(1,0)
   lineright(96,raisefloor,cell_killed_blocker_tag(x,y))
   movestep(1,0)
@@ -588,8 +649,10 @@ barrel_start(x,y) {
   barrel
   thing
   movestep(1,-10)
-  -- lower ceiling over step-on buttons to prevent user from messing up the board during simulation
-  lineright(20,lowerceiling,step_tag(x,y))
+  -- Raise ceiling next to the blockers of barrels used for initial board setup, so that after
+  -- the start walking over the board will have no effect.
+  if(and(eq(x,0),eq(y,0)),
+    lineright(20,raiseceilingtofloor,setter_control_tag))
   movestep(1,0)
   lineright(20,thingteleport,keep_cell_tag(x,y))
   movestep(8,0)
@@ -621,6 +684,7 @@ cell_finished_block(x, y) {
   movestep(0,8)
   sectortype(0,revive_cell_tag(x,y))
   teleport_sector_with_front_line(2,2,raisefloor,cell_committed_tag(x,y))
+  sectortype(0,0)
   movestep(0,-10)
   forcesector(get("scrolling_sector"))
   invbox(0,0,0,2,12)
@@ -794,6 +858,8 @@ addy1(y) {
 
 initialize_tags {
   set("barrel_start_blocker",newtag)
+  set("raised_sector_tag",newtag)
+  set("setter_control_tag",newtag)
   forvar("x",0,sub(col_count,1),
     forvar("y",0,sub(row_count,1),
       set(cat3("kill_cell",x,y),newtag)
@@ -812,6 +878,7 @@ initialize_tags {
       set(cat3("all_nbrs_finished",x,y),newtag)
       set(cat3("all_nbrs_committed",x,y),newtag)
       set(cat3("step",x,y),newtag)
+      set(cat3("set_cell",x,y),newtag)
       forvar("nbr_ix",0,7,
         forvar("nbr_count",0,3,
           set(cat5("check",get("x"),get("y"),get("nbr_ix"),get("nbr_count")),newtag)
@@ -825,6 +892,12 @@ initialize_tags {
 
 barrel_start_blocker_tag {
   get("barrel_start_blocker")
+}
+raised_sector_tag {
+  get("raised_sector_tag")
+}
+setter_control_tag {
+  get("setter_control_tag")
 }
 checkee_line_tag(x,y,nbr_ix,nbr_count) {
   get(cat4("check",nbr_string(x,y,nbr_ix),nbr_ix,nbr_count))
@@ -910,8 +983,11 @@ step_tag(x,y) {
 step_on_sector(x,y) {
   get(cat3("step_on_sector",x,y))
 }
-stdbox(x,y) {
-  box(0,ceiling_height,light_level,x,y)
+set_cell_tag(x,y) {
+  get(cat3("set_cell",x,y))
+}
+set_cell_sector(x,y) {
+  get(cat3("set_cell_sector",x,y))
 }
 stdiboxwithfrontline(x,y,type,tag) {
   linetype(0,0) straight(x)
