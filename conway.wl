@@ -265,7 +265,7 @@ main {
   forvar("x",0,sub(col_count,1),
     !column
     forvar("y",0,sub(row_count,1),
-      riserstep(y,mul(x,128),marb_tag(x,y),dead_cell_texture)
+      riserstep(y,mul(x,128),cell_killed_blocker_tag(x,y),dead_cell_texture)
       movestep(0,4)
       riserstep(y,mul(add(x,1),128),0,alive_cell_texture)
       movestep(128,-4)
@@ -273,7 +273,6 @@ main {
     ^column
     movestep(0,8)
   )
-
 
   linetype(exit_w1_normal,0)
   box(mul(128,col_count),ceiling_height,light_level,vertical_board_x_size, 32)
@@ -546,8 +545,6 @@ checker_for_cell(x, y) {
   lineright(20,raisefloor,cell_revived_blocker_tag(x,y))
   movestep(1,0)
   lineright(20,lowerfloor,cell_killed_blocker_tag(x,y))
-  movestep(1,0)
-  lineright(20,lowerfloor,marb_tag(x,y))
   movestep(2,0)
   lineright(20,raisefloor,cell_alive_blocker_tag(x,y))
   movestep(1,0)
@@ -572,8 +569,6 @@ alive_cell_block(x,y) {
   lineright(96,raisefloor,cell_killed_blocker_tag(x,y))
   movestep(1,0)
   lineright(96,lowerfloor,cell_revived_blocker_tag(x,y))
-  movestep(1,0)
-  lineright(96,raisefloor,marb_tag(x,y))
   movestep(2,0)
   lineright(96,raisefloor,cell_dead_blocker_tag(x,y))
   movestep(1,0)
@@ -816,7 +811,6 @@ initialize_tags {
       set(cat3("start_check",x,y),newtag)
       set(cat3("all_nbrs_finished",x,y),newtag)
       set(cat3("all_nbrs_committed",x,y),newtag)
-      set(cat3("marb",x,y),newtag)
       set(cat3("step",x,y),newtag)
       forvar("nbr_ix",0,7,
         forvar("nbr_count",0,3,
@@ -909,9 +903,6 @@ cell_dead_blocker_sector(x,y) {
 }
 cell_killed_blocker_sector(x,y) {
   get(cat3("cell_killed_blocker_sector",x,y))
-}
-marb_tag(x,y) {
-  get(cat3("marb",x,y))
 }
 step_tag(x,y) {
   get(cat3("step",x,y))
