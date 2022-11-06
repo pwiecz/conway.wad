@@ -231,7 +231,18 @@ main {
   movestep(32, 17)
   player1start
   thingangle(rotated_angle(angle_east))
-  movestep(-32, 15)
+  movestep(0, 64)
+  player2start
+  thingangle(rotated_angle(angle_east))
+  movestep(0, 64)
+  player3start
+  thingangle(rotated_angle(angle_east))
+  movestep(0, 64)
+  player4start
+  thingangle(rotated_angle(angle_east))
+
+  ^playbox_position
+  movestep(0, 32)
 
   yoff(34)
   xoff(47)
