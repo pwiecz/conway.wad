@@ -2,8 +2,8 @@ PHONY=all test
 
 all: conway.wad
 
-conway.wad: conway_nomapinfo.wad mapinfo.txt umapinfo.txt mancubus.bex
-	python3 add_lumps.py -i conway_nomapinfo.wad -o $@ -z mapinfo.txt -u umapinfo.txt -d mancubus.bex
+conway.wad: conway_nomapinfo.wad mapinfo.txt umapinfo.txt mancubus.bex wadinfo.txt
+	python3 add_lumps.py -i conway_nomapinfo.wad -o $@ -z mapinfo.txt -u umapinfo.txt -d mancubus.bex -w wadinfo.txt
 
 # Use ZokumBSP to build nodes, as it can be told to ignore invisible lines.
 # And this way we can fit in standard NODES format.

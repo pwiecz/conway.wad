@@ -1,0 +1,67 @@
+===========================================================================
+Advanced engine needed  : Boom compatible
+Primary purpose         : Single play
+===========================================================================
+Title                   : Conway's Game of Life
+Filename                : conway.zip
+Release date            : November 6th, 2022
+Author                  : Piotr Wieczorek
+Email Address           : pwiecz@gmail.com
+
+Description             : Implementation of Conway's Game of Life in Boom
+                          compatible Doom engine.
+
+Additional Credits to   : Wouter van Oortmerssen and Jonathan Downland for WadC
+===========================================================================
+* What is included *
+
+New levels              : 1
+Sounds                  : No
+Music                   : No
+Graphics                : No
+Dehacked/BEX Patch      : Yes
+Demos                   : No
+Other                   : No
+Other files required    : None
+
+
+* Play Information *
+
+Game                    : DOOM2
+Map #                   : MAP01
+Single Player           : Designed for
+Cooperative 2-4 Player  : Player starts only
+Deathmatch 2-4 Player   : No
+Other game styles       : None
+Difficulty Settings     : Not implemented
+
+
+* Construction *
+
+Base                    : New from scratch
+Build Time              : 2 months
+Editor(s) used          : WadC, Omgifol, Eureka
+Known Bugs              : None known
+May Not Run With        : Non-Boom compatible engines: Doomsday, Crispy Doom, ..
+Tested With             : GzDoom, PrBoom+, DSDA-Doom, Woof
+
+
+
+* Copyright / Permissions *
+
+Authors MAY use the contents of this file as a base for
+modification or reuse.  Permissions have been obtained from original
+authors for any of their resources modified or included in this file.
+
+You MAY distribute this file, provided you include this text
+file, with no modifications.  You may distribute this file in any
+electronic format (BBS, Diskette, CD, etc) as long as you include
+this file intact.  I have received permission from the original
+authors of any modified or included content in this file to allow
+further distribution.
+
+
+* Where to get the file that this text file describes *
+
+The Usual: ftp://archives.gamers.org/pub/idgames/ and mirrors
+Web sites: github.com/pwiecz/conway.wad/
