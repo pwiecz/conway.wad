@@ -64,4 +64,4 @@ further distribution.
 * Where to get the file that this text file describes *
 
 The Usual: ftp://archives.gamers.org/pub/idgames/ and mirrors
-Web sites: github.com/pwiecz/conway.wad/
+Web sites github.com/pwiecz/conway.wad/releases
