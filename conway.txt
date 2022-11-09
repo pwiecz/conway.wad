@@ -11,7 +11,12 @@ Email Address           : pwiecz@gmail.com
 Description             : Implementation of Conway's Game of Life in Boom
                           compatible Doom engine.
 
-Additional Credits to   : Wouter van Oortmerssen and Jonathan Downland for WadC
+			  Step over the raised panels to make respective 
+			  cells alive, then pull the switch to start the
+			  simulation.
+
+Additional Credits to   : Wouter van Oortmerssen and Jonathan Downland -
+	                  creators of WadC
 ===========================================================================
 * What is included *
 
@@ -42,7 +47,8 @@ Base                    : New from scratch
 Build Time              : 2 months
 Editor(s) used          : WadC, Omgifol, Eureka
 Known Bugs              : None known
-May Not Run With        : Non-Boom compatible engines: Doomsday, Crispy Doom, ..
+May Not Run With        : Non-Boom compatible engines: Doomsday, Crispy
+                          Doom, Chocolate Doom, ...
 Tested With             : GzDoom, PrBoom+, DSDA-Doom, Woof
 
 
